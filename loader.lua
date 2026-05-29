@@ -12,10 +12,9 @@ local MODULES = {
         file = "fg100.lua",
         desc = "Paid Version — Solo usuarios autorizados"
     },
-    -- Para agregar más módulos, copiá un bloque de arriba y pegalo acá.
 }
 
-local PAID_FILE = "fg100.lua"  -- solo este módulo tiene whitelist
+local PAID_FILE = "fg100.lua"
 
 local Players      = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
@@ -45,15 +44,14 @@ local pendingFile = nil
 local closing     = false
 local card
 
--- Descarga whitelist.lua de GitHub y devuelve true si el usuario está dentro
 local function isWhitelisted()
     local ok, result = pcall(function()
         return loadstring(game:HttpGet(RAW_ROOT .. "whitelist.lua", true))()
     end)
     if not ok or type(result) ~= "table" then
-        return false  -- si GitHub no responde, se deniega (fail closed)
+        return false
     end
-    return result[player.Name] == true
+    return result[player.UserId] == true
 end
 
 local function closeHub()
@@ -320,11 +318,9 @@ for i, mod in ipairs(MODULES) do
             Color = Color3.fromRGB(130, 110, 255)
         }):Play()
 
-        -- Si es el módulo paid, verificar whitelist antes de proceder
         if mod.file == PAID_FILE then
             local allowed = isWhitelisted()
             if not allowed then
-                -- resetear botón y mostrar aviso, sin cerrar el hub
                 clicked = false
                 TweenService:Create(row, TweenInfo.new(0.14), {
                     BackgroundColor3 = Color3.fromRGB(22, 21, 34)
