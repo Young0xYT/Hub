@@ -1,21 +1,18 @@
 -- ============================================================
---   HUB LOADER v2.0
---   Young0xYT — github.com/Young0xYT/Hub
+--   Young0x Hub — Loader v3.0
+--   github.com/Young0xYT/Hub
 -- ============================================================
 
--- ─────────────────────────────────────────
---  BASE RAW DE TU REPO
--- ─────────────────────────────────────────
 local RAW = "https://raw.githubusercontent.com/Young0xYT/Hub/main/modules/"
 
 -- ─────────────────────────────────────────
 --  ╔══════════════════════════════════════╗
---  ║      ZONA EDITABLE — MÓDULOS         ║
+--  ║         ZONA EDITABLE                ║
 --  ╚══════════════════════════════════════╝
 --
 --  Para agregar un módulo:
 --  1. Subi el .lua a /modules/ en GitHub
---  2. Copia un bloque y pegalo acá abajo
+--  2. Copia un bloque de abajo y pegalo
 --  3. Cambiá name, file y desc
 --
 -- ─────────────────────────────────────────
@@ -46,13 +43,12 @@ local MODULES = {
 -- ─────────────────────────────────────────
 
 
--- ════════════════════════════════════════════
+-- ════════════════════════════════════════
 --   NO TOCAR NADA DE ACÁ EN ADELANTE
--- ════════════════════════════════════════════
+-- ════════════════════════════════════════
 
 local Players      = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
-local UIS          = game:GetService("UserInputService")
 local player       = Players.LocalPlayer
 local playerGui    = player:WaitForChild("PlayerGui")
 
@@ -62,315 +58,332 @@ if playerGui:FindFirstChild("HubGui") then
 end
 
 -- ─────────────────────────────────────────
---  FUNCIÓN: cargar módulo desde GitHub
+--  TAMAÑO — cómodo para móvil y PC
 -- ─────────────────────────────────────────
-local function loadModule(file, onDone)
-    task.spawn(function()
-        local ok, result = pcall(function()
-            return loadstring(game:HttpGet(RAW .. file, true))()
-        end)
-        if onDone then onDone(ok, result) end
-        if not ok then
-            warn("[HUB] Error cargando " .. file .. ": " .. tostring(result))
+local CARD_W    = 420
+local ROW_H     = 76   -- altura de cada botón de módulo
+local ROW_GAP   = 8
+local HEADER_H  = 72
+local PADDING_B = 16
+local CARD_H    = HEADER_H + PADDING_B + (#MODULES * (ROW_H + ROW_GAP))
+
+-- ─────────────────────────────────────────
+--  GUI raíz — SIN fondo, solo la card
+-- ─────────────────────────────────────────
+local gui = Instance.new("ScreenGui")
+gui.Name           = "HubGui"
+gui.ResetOnSpawn   = false
+gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+gui.IgnoreGuiInset = true
+gui.Parent         = playerGui
+
+-- Variable para el archivo a ejecutar después del cierre
+local pendingFile = nil
+
+-- ─────────────────────────────────────────
+--  FUNCIÓN CERRAR (ejecuta pending al final)
+-- ─────────────────────────────────────────
+local closing = false
+local card     -- forward declaration
+
+local function closeHub()
+    if closing then return end
+    closing = true
+
+    local tweenOut = TweenService:Create(card,
+        TweenInfo.new(0.32, Enum.EasingStyle.Back, Enum.EasingDirection.In),
+        { Position = UDim2.new(0.5, -CARD_W / 2, 1.5, 0) }
+    )
+    tweenOut:Play()
+    tweenOut.Completed:Connect(function()
+        gui:Destroy()
+        -- Recién acá ejecuta el módulo, hub ya cerrado
+        if pendingFile then
+            local ok, err = pcall(function()
+                loadstring(game:HttpGet(RAW .. pendingFile, true))()
+            end)
+            if not ok then
+                warn("[Young0x Hub] Error al ejecutar " .. pendingFile .. ": " .. tostring(err))
+            end
         end
     end)
 end
 
 -- ─────────────────────────────────────────
---  FUNCIÓN: cerrar hub con animación
+--  CARD PRINCIPAL
 -- ─────────────────────────────────────────
-local gui  -- declarada acá para que closeHub pueda usarla
-local card
-local CARD_W = 320
-local CARD_H = 70 + (#MODULES * 72) + 16
-
-local function closeHub()
-    local tween = TweenService:Create(card,
-        TweenInfo.new(0.28, Enum.EasingStyle.Back, Enum.EasingDirection.In),
-        {
-            Position = UDim2.new(0.5, -CARD_W / 2, 1.5, 0),
-            BackgroundTransparency = 1
-        }
-    )
-    tween:Play()
-    tween.Completed:Connect(function()
-        if gui then gui:Destroy() end
-    end)
-end
-
--- ─────────────────────────────────────────
---  CONSTRUCCIÓN DEL GUI
--- ─────────────────────────────────────────
-
--- ScreenGui
-gui = Instance.new("ScreenGui")
-gui.Name           = "HubGui"
-gui.ResetOnSpawn   = false
-gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-gui.Parent         = playerGui
-
--- Fondo negro total
-local backdrop = Instance.new("Frame")
-backdrop.Name                  = "Backdrop"
-backdrop.Size                  = UDim2.new(1, 0, 1, 0)
-backdrop.BackgroundColor3      = Color3.fromRGB(0, 0, 0)
-backdrop.BackgroundTransparency = 0  -- NEGRO TOTAL
-backdrop.BorderSizePixel       = 0
-backdrop.Parent                = gui
-
--- Click en backdrop cierra el hub
-local backdropBtn = Instance.new("TextButton")
-backdropBtn.Size                  = UDim2.new(1, 0, 1, 0)
-backdropBtn.BackgroundTransparency = 1
-backdropBtn.Text                  = ""
-backdropBtn.ZIndex                = 1
-backdropBtn.Parent                = backdrop
-backdropBtn.MouseButton1Click:Connect(closeHub)
-
--- Card principal
 card = Instance.new("Frame")
 card.Name             = "Card"
 card.Size             = UDim2.new(0, CARD_W, 0, CARD_H)
-card.Position         = UDim2.new(0.5, -CARD_W / 2, 1.5, 0) -- empieza fuera de pantalla
-card.BackgroundColor3 = Color3.fromRGB(12, 12, 16)
+card.Position         = UDim2.new(0.5, -CARD_W / 2, 1.5, 0)
+card.BackgroundColor3 = Color3.fromRGB(14, 14, 20)
 card.BorderSizePixel  = 0
-card.ZIndex           = 2
+card.ZIndex           = 10
 card.Parent           = gui
 
 local cardCorner = Instance.new("UICorner")
-cardCorner.CornerRadius = UDim.new(0, 14)
+cardCorner.CornerRadius = UDim.new(0, 16)
 cardCorner.Parent = card
 
 local cardStroke = Instance.new("UIStroke")
-cardStroke.Color     = Color3.fromRGB(50, 50, 70)
-cardStroke.Thickness = 1
+cardStroke.Color     = Color3.fromRGB(55, 50, 90)
+cardStroke.Thickness = 1.2
 cardStroke.Parent    = card
 
--- Header
+-- ─────────────────────────────────────────
+--  HEADER
+-- ─────────────────────────────────────────
 local header = Instance.new("Frame")
-header.Size             = UDim2.new(1, 0, 0, 54)
-header.BackgroundColor3 = Color3.fromRGB(18, 18, 26)
+header.Size             = UDim2.new(1, 0, 0, HEADER_H)
+header.Position         = UDim2.new(0, 0, 0, 0)
+header.BackgroundColor3 = Color3.fromRGB(20, 19, 32)
 header.BorderSizePixel  = 0
-header.ZIndex           = 3
+header.ZIndex           = 11
 header.Parent           = card
 
-local headerCornerTop = Instance.new("UICorner")
-headerCornerTop.CornerRadius = UDim.new(0, 14)
-headerCornerTop.Parent = header
+local headerCorner = Instance.new("UICorner")
+headerCorner.CornerRadius = UDim.new(0, 16)
+headerCorner.Parent = header
 
--- Parche para esquinas inferiores del header (cuadradas)
+-- Parche para esquinas inferiores del header
 local headerPatch = Instance.new("Frame")
-headerPatch.Size             = UDim2.new(1, 0, 0, 14)
-headerPatch.Position         = UDim2.new(0, 0, 1, -14)
-headerPatch.BackgroundColor3 = Color3.fromRGB(18, 18, 26)
+headerPatch.Size             = UDim2.new(1, 0, 0, 16)
+headerPatch.Position         = UDim2.new(0, 0, 1, -16)
+headerPatch.BackgroundColor3 = Color3.fromRGB(20, 19, 32)
 headerPatch.BorderSizePixel  = 0
-headerPatch.ZIndex           = 3
+headerPatch.ZIndex           = 11
 headerPatch.Parent           = header
 
--- Punto de color decorativo en el header
-local dot = Instance.new("Frame")
-dot.Size             = UDim2.new(0, 8, 0, 8)
-dot.Position         = UDim2.new(0, 14, 0.5, -4)
-dot.BackgroundColor3 = Color3.fromRGB(110, 90, 220)
-dot.BorderSizePixel  = 0
-dot.ZIndex           = 4
-dot.Parent           = header
+-- Barra de acento izquierda
+local accent = Instance.new("Frame")
+accent.Size             = UDim2.new(0, 4, 0, 32)
+accent.Position         = UDim2.new(0, 14, 0.5, -16)
+accent.BackgroundColor3 = Color3.fromRGB(120, 90, 240)
+accent.BorderSizePixel  = 0
+accent.ZIndex           = 12
+accent.Parent           = header
 
-local dotCorner = Instance.new("UICorner")
-dotCorner.CornerRadius = UDim.new(1, 0)
-dotCorner.Parent = dot
+local accentCorner = Instance.new("UICorner")
+accentCorner.CornerRadius = UDim.new(0, 4)
+accentCorner.Parent = accent
 
--- Título del hub
-local titleLabel = Instance.new("TextLabel")
-titleLabel.Text              = "HUB"
-titleLabel.Font              = Enum.Font.GothamBold
-titleLabel.TextSize          = 16
-titleLabel.TextColor3        = Color3.fromRGB(230, 225, 255)
-titleLabel.BackgroundTransparency = 1
-titleLabel.Size              = UDim2.new(1, -80, 1, 0)
-titleLabel.Position          = UDim2.new(0, 30, 0, 0)
-titleLabel.TextXAlignment    = Enum.TextXAlignment.Left
-titleLabel.ZIndex            = 4
-titleLabel.Parent            = header
+-- Nombre del hub
+local hubTitle = Instance.new("TextLabel")
+hubTitle.Text              = "Young0x Hub"
+hubTitle.Font              = Enum.Font.GothamBold
+hubTitle.TextSize          = 20
+hubTitle.TextColor3        = Color3.fromRGB(235, 230, 255)
+hubTitle.BackgroundTransparency = 1
+hubTitle.Size              = UDim2.new(1, -80, 0, 26)
+hubTitle.Position          = UDim2.new(0, 26, 0, 12)
+hubTitle.TextXAlignment    = Enum.TextXAlignment.Left
+hubTitle.ZIndex            = 12
+hubTitle.Parent            = header
 
--- Subtítulo de estado
-local statusLabel = Instance.new("TextLabel")
-statusLabel.Name             = "Status"
-statusLabel.Text             = "Seleccioná un script"
-statusLabel.Font             = Enum.Font.Gotham
-statusLabel.TextSize         = 11
-statusLabel.TextColor3       = Color3.fromRGB(100, 100, 140)
-statusLabel.BackgroundTransparency = 1
-statusLabel.Size             = UDim2.new(1, -80, 0, 13)
-statusLabel.Position         = UDim2.new(0, 30, 0, 32)
-statusLabel.TextXAlignment   = Enum.TextXAlignment.Left
-statusLabel.ZIndex           = 4
-statusLabel.Parent           = card
+-- Subtítulo fijo
+local hubSub = Instance.new("TextLabel")
+hubSub.Text              = "Seleccioná un script para ejecutar"
+hubSub.Font              = Enum.Font.Gotham
+hubSub.TextSize          = 12
+hubSub.TextColor3        = Color3.fromRGB(95, 90, 130)
+hubSub.BackgroundTransparency = 1
+hubSub.Size              = UDim2.new(1, -80, 0, 16)
+hubSub.Position          = UDim2.new(0, 26, 0, 42)
+hubSub.TextXAlignment    = Enum.TextXAlignment.Left
+hubSub.ZIndex            = 12
+hubSub.Parent            = header
 
--- Botón cerrar (X — texto real, no unicode raro)
+-- Botón cerrar X
 local closeBtn = Instance.new("TextButton")
 closeBtn.Text             = "X"
 closeBtn.Font             = Enum.Font.GothamBold
 closeBtn.TextSize         = 13
-closeBtn.TextColor3       = Color3.fromRGB(160, 150, 190)
-closeBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
-closeBtn.Size             = UDim2.new(0, 28, 0, 28)
-closeBtn.Position         = UDim2.new(1, -38, 0, 13)
+closeBtn.TextColor3       = Color3.fromRGB(150, 140, 190)
+closeBtn.BackgroundColor3 = Color3.fromRGB(32, 30, 48)
+closeBtn.Size             = UDim2.new(0, 32, 0, 32)
+closeBtn.Position         = UDim2.new(1, -42, 0.5, -16)
 closeBtn.BorderSizePixel  = 0
-closeBtn.ZIndex           = 5
-closeBtn.Parent           = card
+closeBtn.ZIndex           = 13
+closeBtn.Parent           = header
 
 local closeBtnCorner = Instance.new("UICorner")
-closeBtnCorner.CornerRadius = UDim.new(0, 7)
+closeBtnCorner.CornerRadius = UDim.new(0, 8)
 closeBtnCorner.Parent = closeBtn
 
 closeBtn.MouseButton1Click:Connect(closeHub)
 
--- Hover en X
 closeBtn.MouseEnter:Connect(function()
     TweenService:Create(closeBtn, TweenInfo.new(0.12), {
-        BackgroundColor3 = Color3.fromRGB(180, 50, 60),
+        BackgroundColor3 = Color3.fromRGB(170, 40, 55),
         TextColor3       = Color3.fromRGB(255, 255, 255)
     }):Play()
 end)
 closeBtn.MouseLeave:Connect(function()
     TweenService:Create(closeBtn, TweenInfo.new(0.12), {
-        BackgroundColor3 = Color3.fromRGB(35, 35, 50),
-        TextColor3       = Color3.fromRGB(160, 150, 190)
+        BackgroundColor3 = Color3.fromRGB(32, 30, 48),
+        TextColor3       = Color3.fromRGB(150, 140, 190)
     }):Play()
 end)
 
--- Línea separadora bajo el header
-local separator = Instance.new("Frame")
-separator.Size             = UDim2.new(1, -28, 0, 1)
-separator.Position         = UDim2.new(0, 14, 0, 54)
-separator.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
-separator.BorderSizePixel  = 0
-separator.ZIndex           = 3
-separator.Parent           = card
-
--- Contenedor de botones (scroll si hay muchos módulos)
-local scroll = Instance.new("ScrollingFrame")
-scroll.Size                   = UDim2.new(1, -16, 1, -70)
-scroll.Position               = UDim2.new(0, 8, 0, 62)
-scroll.BackgroundTransparency = 1
-scroll.BorderSizePixel        = 0
-scroll.ScrollBarThickness     = 2
-scroll.ScrollBarImageColor3   = Color3.fromRGB(70, 70, 110)
-scroll.CanvasSize             = UDim2.new(0, 0, 0, #MODULES * 72)
-scroll.ZIndex                 = 3
-scroll.Parent                 = card
-
-local listLayout = Instance.new("UIListLayout")
-listLayout.Padding    = UDim.new(0, 6)
-listLayout.SortOrder  = Enum.SortOrder.LayoutOrder
-listLayout.Parent     = scroll
+-- Separador bajo el header
+local sep = Instance.new("Frame")
+sep.Size             = UDim2.new(1, -28, 0, 1)
+sep.Position         = UDim2.new(0, 14, 0, HEADER_H)
+sep.BackgroundColor3 = Color3.fromRGB(38, 35, 62)
+sep.BorderSizePixel  = 0
+sep.ZIndex           = 11
+sep.Parent           = card
 
 -- ─────────────────────────────────────────
---  GENERAR BOTONES DINÁMICAMENTE
+--  LISTA DE MÓDULOS
+-- ─────────────────────────────────────────
+local listFrame = Instance.new("ScrollingFrame")
+listFrame.Size                   = UDim2.new(1, -16, 1, -(HEADER_H + 10 + PADDING_B))
+listFrame.Position               = UDim2.new(0, 8, 0, HEADER_H + 10)
+listFrame.BackgroundTransparency = 1
+listFrame.BorderSizePixel        = 0
+listFrame.ScrollBarThickness     = 3
+listFrame.ScrollBarImageColor3   = Color3.fromRGB(90, 80, 150)
+listFrame.CanvasSize             = UDim2.new(0, 0, 0, #MODULES * (ROW_H + ROW_GAP))
+listFrame.ZIndex                 = 11
+listFrame.Parent                 = card
+
+local layout = Instance.new("UIListLayout")
+layout.Padding   = UDim.new(0, ROW_GAP)
+layout.SortOrder = Enum.SortOrder.LayoutOrder
+layout.Parent    = listFrame
+
+-- ─────────────────────────────────────────
+--  GENERAR BOTONES
 -- ─────────────────────────────────────────
 for i, mod in ipairs(MODULES) do
-    local btn = Instance.new("TextButton")
-    btn.Name             = "Mod_" .. i
-    btn.Size             = UDim2.new(1, 0, 0, 64)
-    btn.BackgroundColor3 = Color3.fromRGB(20, 20, 32)
-    btn.BorderSizePixel  = 0
-    btn.Text             = ""
-    btn.LayoutOrder      = i
-    btn.ZIndex           = 4
-    btn.Parent           = scroll
 
-    local btnCorner = Instance.new("UICorner")
-    btnCorner.CornerRadius = UDim.new(0, 10)
-    btnCorner.Parent = btn
+    local row = Instance.new("TextButton")
+    row.Name             = "Row_" .. i
+    row.Size             = UDim2.new(1, 0, 0, ROW_H)
+    row.BackgroundColor3 = Color3.fromRGB(22, 21, 34)
+    row.BorderSizePixel  = 0
+    row.Text             = ""
+    row.LayoutOrder      = i
+    row.ZIndex           = 12
+    row.Parent           = listFrame
 
-    local btnStroke = Instance.new("UIStroke")
-    btnStroke.Color     = Color3.fromRGB(38, 38, 58)
-    btnStroke.Thickness = 1
-    btnStroke.Parent    = btn
+    local rowCorner = Instance.new("UICorner")
+    rowCorner.CornerRadius = UDim.new(0, 10)
+    rowCorner.Parent = row
+
+    local rowStroke = Instance.new("UIStroke")
+    rowStroke.Color     = Color3.fromRGB(40, 38, 65)
+    rowStroke.Thickness = 1
+    rowStroke.Parent    = row
+
+    -- Número de ítem (izquierda)
+    local numLabel = Instance.new("TextLabel")
+    numLabel.Text              = string.format("%02d", i)
+    numLabel.Font              = Enum.Font.GothamBold
+    numLabel.TextSize          = 12
+    numLabel.TextColor3        = Color3.fromRGB(80, 70, 130)
+    numLabel.BackgroundTransparency = 1
+    numLabel.Size              = UDim2.new(0, 28, 1, 0)
+    numLabel.Position          = UDim2.new(0, 12, 0, 0)
+    numLabel.TextXAlignment    = Enum.TextXAlignment.Left
+    numLabel.TextYAlignment    = Enum.TextYAlignment.Center
+    numLabel.ZIndex            = 13
+    numLabel.Parent            = row
+
+    -- Separador vertical
+    local vSep = Instance.new("Frame")
+    vSep.Size             = UDim2.new(0, 1, 0, 34)
+    vSep.Position         = UDim2.new(0, 44, 0.5, -17)
+    vSep.BackgroundColor3 = Color3.fromRGB(45, 42, 72)
+    vSep.BorderSizePixel  = 0
+    vSep.ZIndex           = 13
+    vSep.Parent           = row
 
     -- Nombre del módulo
     local nameLabel = Instance.new("TextLabel")
     nameLabel.Text             = mod.name
     nameLabel.Font             = Enum.Font.GothamBold
-    nameLabel.TextSize         = 14
-    nameLabel.TextColor3       = Color3.fromRGB(220, 215, 255)
+    nameLabel.TextSize         = 15
+    nameLabel.TextColor3       = Color3.fromRGB(225, 220, 255)
     nameLabel.BackgroundTransparency = 1
-    nameLabel.Size             = UDim2.new(1, -50, 0, 20)
-    nameLabel.Position         = UDim2.new(0, 14, 0, 12)
+    nameLabel.Size             = UDim2.new(1, -120, 0, 22)
+    nameLabel.Position         = UDim2.new(0, 54, 0, 14)
     nameLabel.TextXAlignment   = Enum.TextXAlignment.Left
-    nameLabel.ZIndex           = 5
-    nameLabel.Parent           = btn
+    nameLabel.ZIndex           = 13
+    nameLabel.Parent           = row
 
-    -- Descripción
+    -- Descripción (separada con margen generoso)
     local descLabel = Instance.new("TextLabel")
     descLabel.Text             = mod.desc
     descLabel.Font             = Enum.Font.Gotham
-    descLabel.TextSize         = 11
-    descLabel.TextColor3       = Color3.fromRGB(90, 90, 130)
+    descLabel.TextSize         = 12
+    descLabel.TextColor3       = Color3.fromRGB(85, 80, 125)
     descLabel.BackgroundTransparency = 1
-    descLabel.Size             = UDim2.new(1, -50, 0, 15)
-    descLabel.Position         = UDim2.new(0, 14, 0, 36)
+    descLabel.Size             = UDim2.new(1, -120, 0, 16)
+    descLabel.Position         = UDim2.new(0, 54, 0, 42)  -- 14 gap desde nombre
     descLabel.TextXAlignment   = Enum.TextXAlignment.Left
-    descLabel.ZIndex           = 5
-    descLabel.Parent           = btn
+    descLabel.ZIndex           = 13
+    descLabel.Parent           = row
 
-    -- Indicador de estado (círculo derecha)
-    local indicator = Instance.new("Frame")
-    indicator.Size             = UDim2.new(0, 9, 0, 9)
-    indicator.Position         = UDim2.new(1, -20, 0.5, -4)
-    indicator.BackgroundColor3 = Color3.fromRGB(55, 55, 80)
-    indicator.BorderSizePixel  = 0
-    indicator.ZIndex           = 5
-    indicator.Parent           = btn
+    -- Flecha derecha (>)
+    local arrow = Instance.new("TextLabel")
+    arrow.Text             = "›"
+    arrow.Font             = Enum.Font.GothamBold
+    arrow.TextSize         = 22
+    arrow.TextColor3       = Color3.fromRGB(70, 65, 110)
+    arrow.BackgroundTransparency = 1
+    arrow.Size             = UDim2.new(0, 24, 1, 0)
+    arrow.Position         = UDim2.new(1, -34, 0, 0)
+    arrow.TextXAlignment   = Enum.TextXAlignment.Center
+    arrow.TextYAlignment   = Enum.TextYAlignment.Center
+    arrow.ZIndex           = 13
+    arrow.Parent           = row
 
-    local indCorner = Instance.new("UICorner")
-    indCorner.CornerRadius = UDim.new(1, 0)
-    indCorner.Parent = indicator
-
-    -- Hover
-    btn.MouseEnter:Connect(function()
-        TweenService:Create(btn, TweenInfo.new(0.13), {
-            BackgroundColor3 = Color3.fromRGB(28, 28, 46)
+    -- ── Hover ──
+    row.MouseEnter:Connect(function()
+        TweenService:Create(row, TweenInfo.new(0.14), {
+            BackgroundColor3 = Color3.fromRGB(30, 28, 48)
         }):Play()
-        TweenService:Create(btnStroke, TweenInfo.new(0.13), {
-            Color = Color3.fromRGB(80, 70, 160)
+        TweenService:Create(rowStroke, TweenInfo.new(0.14), {
+            Color = Color3.fromRGB(100, 85, 200)
         }):Play()
-    end)
-    btn.MouseLeave:Connect(function()
-        TweenService:Create(btn, TweenInfo.new(0.13), {
-            BackgroundColor3 = Color3.fromRGB(20, 20, 32)
-        }):Play()
-        TweenService:Create(btnStroke, TweenInfo.new(0.13), {
-            Color = Color3.fromRGB(38, 38, 58)
+        TweenService:Create(arrow, TweenInfo.new(0.14), {
+            TextColor3 = Color3.fromRGB(140, 120, 240)
         }):Play()
     end)
+    row.MouseLeave:Connect(function()
+        TweenService:Create(row, TweenInfo.new(0.14), {
+            BackgroundColor3 = Color3.fromRGB(22, 21, 34)
+        }):Play()
+        TweenService:Create(rowStroke, TweenInfo.new(0.14), {
+            Color = Color3.fromRGB(40, 38, 65)
+        }):Play()
+        TweenService:Create(arrow, TweenInfo.new(0.14), {
+            TextColor3 = Color3.fromRGB(70, 65, 110)
+        }):Play()
+    end)
 
-    -- ── CLICK: cargar y cerrar ──
-    local loaded = false
-    btn.MouseButton1Click:Connect(function()
-        if loaded then return end
-        loaded = true
-        btn.Active = false
+    -- ── Click: guardar pending y cerrar ──
+    local clicked = false
+    row.MouseButton1Click:Connect(function()
+        if clicked or closing then return end
+        clicked = true
 
-        -- Feedback visual de carga
-        statusLabel.Text      = "Cargando " .. mod.name .. "..."
-        statusLabel.TextColor3 = Color3.fromRGB(200, 170, 60)
-        TweenService:Create(indicator, TweenInfo.new(0.15), {
-            BackgroundColor3 = Color3.fromRGB(200, 160, 40)
+        -- Feedback visual
+        TweenService:Create(row, TweenInfo.new(0.1), {
+            BackgroundColor3 = Color3.fromRGB(40, 35, 70)
+        }):Play()
+        TweenService:Create(rowStroke, TweenInfo.new(0.1), {
+            Color = Color3.fromRGB(130, 110, 255)
         }):Play()
 
-        -- Carga el módulo y CIERRA el hub
-        loadModule(mod.file, function(ok, _)
-            if ok then
-                TweenService:Create(indicator, TweenInfo.new(0.15), {
-                    BackgroundColor3 = Color3.fromRGB(60, 210, 110)
-                }):Play()
-            end
-            -- Pequeña pausa para ver el feedback, luego cierra
-            task.wait(0.3)
-            closeHub()
-        end)
+        -- Registra qué ejecutar DESPUÉS del cierre
+        pendingFile = mod.file
+
+        -- Cierra el hub; el módulo se ejecuta al final de closeHub
+        task.wait(0.12)
+        closeHub()
     end)
 end
 
@@ -379,8 +392,8 @@ end
 -- ─────────────────────────────────────────
 local targetPos = UDim2.new(0.5, -CARD_W / 2, 0.5, -CARD_H / 2)
 
-task.wait(0.05) -- Frame de gracia para que el GUI inicialice
+task.wait(0.05)
 TweenService:Create(card,
-    TweenInfo.new(0.42, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+    TweenInfo.new(0.44, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
     { Position = targetPos }
 ):Play()
