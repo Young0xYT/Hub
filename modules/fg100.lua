@@ -120,7 +120,24 @@ closeBtn.ZIndex           = 13
 closeBtn.Parent           = hdr
 do local c = Instance.new("UICorner") c.CornerRadius = UDim.new(0, 7) c.Parent = closeBtn end
 
-closeBtn.MouseButton1Click:Connect(function() gui:Destroy() end)
+-- ── Cleanup al cerrar ─────────────────────────────────────────────────────
+-- Todas las conexiones y flags se limpian acá para evitar memory leaks y loops zombie.
+local heartbeatConn = nil
+
+local function destroyAll()
+    -- Detener loops
+    rebirthActive = false  -- se define abajo, Lua es late-binding en upvalues
+    speedActive   = false
+
+    -- Desconectar todo
+    if heartbeatConn then heartbeatConn:Disconnect() heartbeatConn = nil end
+    if afkConn       then afkConn:Disconnect()       afkConn = nil       end
+    if particleConn  then particleConn:Disconnect()  particleConn = nil  end
+
+    gui:Destroy()
+end
+
+closeBtn.MouseButton1Click:Connect(destroyAll)
 closeBtn.MouseEnter:Connect(function()
     TweenService:Create(closeBtn, TweenInfo.new(0.12), {
         BackgroundColor3 = Color3.fromRGB(170, 40, 55),
@@ -500,7 +517,8 @@ local lbStrength  = makeStatRow(statsPage, 2,  "Fuerza:  — | Ganada: —")
 local lbDura      = makeStatRow(statsPage, 3,  "Durabilidad:  — | Ganada: —")
 local lbRebirths  = makeStatRow(statsPage, 4,  "Rebirths:  — | Ganados: —")
 
-RunService.Heartbeat:Connect(function()
+-- heartbeatConn se guarda para poder desconectarlo al cerrar
+heartbeatConn = RunService.Heartbeat:Connect(function()
     if not statsPage.Visible then return end
 
     local elapsed = tick() - sessionStart
