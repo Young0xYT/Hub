@@ -1,484 +1,23 @@
-local Players          = game:GetService("Players")
-local TweenService     = game:GetService("TweenService")
-local VirtualUser      = game:GetService("VirtualUser")
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local RunService       = game:GetService("RunService")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local VirtualUser = game:GetService("VirtualUser")
+local StarterGui = game:GetService("StarterGui")
+local LP = Players.LocalPlayer
+local PlayerGui = LP:WaitForChild("PlayerGui")
 
-local player           = Players.LocalPlayer
-local playerGui        = player:WaitForChild("PlayerGui")
-
-if playerGui:FindFirstChild("FG100Gui") then
-    playerGui.FG100Gui:Destroy()
-end
-
--- ── Stats refs (espera a que existan) ──────────────────────────────────────
-local leaderstats  = player:WaitForChild("leaderstats", 15)
-local statStrength = leaderstats and leaderstats:WaitForChild("Strength",  15)
-local statRebirths = leaderstats and leaderstats:WaitForChild("Rebirths",  15)
-local statDurability = player:WaitForChild("Durability", 15)
-
-local sessionStart       = tick()
-local startStrength      = statStrength  and statStrength.Value  or 0
-local startDurability    = statDurability and statDurability.Value or 0
-local startRebirths      = statRebirths  and statRebirths.Value  or 0
-
--- ── Número abreviado ───────────────────────────────────────────────────────
-local function fmt(n)
-    local suffixes = { "K", "M", "B", "T", "Qa" }
-    for i = #suffixes, 1, -1 do
-        local threshold = 10 ^ (i * 3)
-        if math.abs(n) >= threshold then
-            return string.format("%.2f%s", n / threshold, suffixes[i])
-        end
-    end
-    return string.format("%.2f", n)
-end
-
--- ── GUI ───────────────────────────────────────────────────────────────────
-local gui = Instance.new("ScreenGui")
-gui.Name           = "FG100Gui"
-gui.ResetOnSpawn   = false
-gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-gui.IgnoreGuiInset = true
-gui.Parent         = playerGui
-
-local WIN_W, WIN_H = 420, 480
-local TAB_H        = 36
-
-local main = Instance.new("Frame")
-main.Name             = "Main"
-main.Size             = UDim2.new(0, WIN_W, 0, WIN_H)
-main.Position         = UDim2.new(0.5, -WIN_W / 2, 0.5, -WIN_H / 2)
-main.BackgroundColor3 = Color3.fromRGB(14, 14, 20)
-main.BorderSizePixel  = 0
-main.Active           = true
-main.Draggable        = true
-main.ZIndex           = 10
-main.Parent           = gui
-
-do
-    local c = Instance.new("UICorner")
-    c.CornerRadius = UDim.new(0, 14)
-    c.Parent = main
-    local s = Instance.new("UIStroke")
-    s.Color     = Color3.fromRGB(55, 50, 90)
-    s.Thickness = 1.2
-    s.Parent    = main
-end
-
--- Header
-local hdr = Instance.new("Frame")
-hdr.Size             = UDim2.new(1, 0, 0, 52)
-hdr.BackgroundColor3 = Color3.fromRGB(20, 19, 32)
-hdr.BorderSizePixel  = 0
-hdr.ZIndex           = 11
-hdr.Parent           = main
-do
-    local c = Instance.new("UICorner")
-    c.CornerRadius = UDim.new(0, 14)
-    c.Parent = hdr
-    local pad = Instance.new("Frame")
-    pad.Size             = UDim2.new(1, 0, 0, 14)
-    pad.Position         = UDim2.new(0, 0, 1, -14)
-    pad.BackgroundColor3 = Color3.fromRGB(20, 19, 32)
-    pad.BorderSizePixel  = 0
-    pad.ZIndex           = 11
-    pad.Parent           = hdr
-end
-
-local accent = Instance.new("Frame")
-accent.Size             = UDim2.new(0, 4, 0, 28)
-accent.Position         = UDim2.new(0, 14, 0.5, -14)
-accent.BackgroundColor3 = Color3.fromRGB(120, 90, 240)
-accent.BorderSizePixel  = 0
-accent.ZIndex           = 12
-accent.Parent           = hdr
-do local c = Instance.new("UICorner") c.CornerRadius = UDim.new(0, 4) c.Parent = accent end
-
-local titleLabel = Instance.new("TextLabel")
-titleLabel.Text                 = "FG100 — Paid"
-titleLabel.Font                 = Enum.Font.GothamBold
-titleLabel.TextSize             = 18
-titleLabel.TextColor3           = Color3.fromRGB(235, 230, 255)
-titleLabel.BackgroundTransparency = 1
-titleLabel.Size                 = UDim2.new(1, -90, 0, 24)
-titleLabel.Position             = UDim2.new(0, 26, 0.5, -12)
-titleLabel.TextXAlignment       = Enum.TextXAlignment.Left
-titleLabel.ZIndex               = 12
-titleLabel.Parent               = hdr
-
-local closeBtn = Instance.new("TextButton")
-closeBtn.Text             = "X"
-closeBtn.Font             = Enum.Font.GothamBold
-closeBtn.TextSize         = 12
-closeBtn.TextColor3       = Color3.fromRGB(150, 140, 190)
-closeBtn.BackgroundColor3 = Color3.fromRGB(32, 30, 48)
-closeBtn.Size             = UDim2.new(0, 28, 0, 28)
-closeBtn.Position         = UDim2.new(1, -38, 0.5, -14)
-closeBtn.BorderSizePixel  = 0
-closeBtn.ZIndex           = 13
-closeBtn.Parent           = hdr
-do local c = Instance.new("UICorner") c.CornerRadius = UDim.new(0, 7) c.Parent = closeBtn end
-
--- ── Cleanup al cerrar ─────────────────────────────────────────────────────
--- Todas las conexiones y flags se limpian acá para evitar memory leaks y loops zombie.
-local heartbeatConn = nil
-
-local function destroyAll()
-    -- Detener loops
-    rebirthActive = false  -- se define abajo, Lua es late-binding en upvalues
-    speedActive   = false
-
-    -- Desconectar todo
-    if heartbeatConn then heartbeatConn:Disconnect() heartbeatConn = nil end
-    if afkConn       then afkConn:Disconnect()       afkConn = nil       end
-    if particleConn  then particleConn:Disconnect()  particleConn = nil  end
-
-    gui:Destroy()
-end
-
-closeBtn.MouseButton1Click:Connect(destroyAll)
-closeBtn.MouseEnter:Connect(function()
-    TweenService:Create(closeBtn, TweenInfo.new(0.12), {
-        BackgroundColor3 = Color3.fromRGB(170, 40, 55),
-        TextColor3       = Color3.fromRGB(255, 255, 255)
-    }):Play()
-end)
-closeBtn.MouseLeave:Connect(function()
-    TweenService:Create(closeBtn, TweenInfo.new(0.12), {
-        BackgroundColor3 = Color3.fromRGB(32, 30, 48),
-        TextColor3       = Color3.fromRGB(150, 140, 190)
-    }):Play()
-end)
-
--- Tab bar
-local tabBar = Instance.new("Frame")
-tabBar.Size             = UDim2.new(1, -28, 0, TAB_H)
-tabBar.Position         = UDim2.new(0, 14, 0, 58)
-tabBar.BackgroundColor3 = Color3.fromRGB(18, 17, 28)
-tabBar.BorderSizePixel  = 0
-tabBar.ZIndex           = 11
-tabBar.Parent           = main
-do
-    local c = Instance.new("UICorner") c.CornerRadius = UDim.new(0, 8) c.Parent = tabBar
-    local l = Instance.new("UIListLayout")
-    l.FillDirection = Enum.FillDirection.Horizontal
-    l.SortOrder     = Enum.SortOrder.LayoutOrder
-    l.Parent        = tabBar
-end
-
--- Content area
-local contentArea = Instance.new("Frame")
-contentArea.Size             = UDim2.new(1, -28, 1, -(58 + TAB_H + 20))
-contentArea.Position         = UDim2.new(0, 14, 0, 58 + TAB_H + 10)
-contentArea.BackgroundTransparency = 1
-contentArea.BorderSizePixel  = 0
-contentArea.ZIndex           = 11
-contentArea.ClipsDescendants = true
-contentArea.Parent           = main
-
--- ── Tab system ────────────────────────────────────────────────────────────
-local tabPages   = {}
-local tabButtons = {}
-local activeTab  = nil
-
-local function switchTab(name)
-    if activeTab == name then return end
-    activeTab = name
-    for n, page in pairs(tabPages) do
-        page.Visible = (n == name)
-    end
-    for n, btn in pairs(tabButtons) do
-        if n == name then
-            TweenService:Create(btn, TweenInfo.new(0.12), {
-                BackgroundColor3 = Color3.fromRGB(120, 90, 240),
-                TextColor3       = Color3.fromRGB(255, 255, 255)
-            }):Play()
-        else
-            TweenService:Create(btn, TweenInfo.new(0.12), {
-                BackgroundColor3 = Color3.fromRGB(18, 17, 28),
-                TextColor3       = Color3.fromRGB(110, 105, 160)
-            }):Play()
-        end
+-- CLEANUP — destruye instancias viejas del mismo script
+for _, g in ipairs(PlayerGui:GetChildren()) do
+    if g:IsA("ScreenGui") and g.Name == "FG100Hub" then
+        g:Destroy()
     end
 end
 
-local function addTab(name, order)
-    local btn = Instance.new("TextButton")
-    btn.Size             = UDim2.new(0.5, 0, 1, 0)
-    btn.BackgroundColor3 = Color3.fromRGB(18, 17, 28)
-    btn.BorderSizePixel  = 0
-    btn.Text             = name
-    btn.Font             = Enum.Font.GothamBold
-    btn.TextSize         = 13
-    btn.TextColor3       = Color3.fromRGB(110, 105, 160)
-    btn.LayoutOrder      = order
-    btn.ZIndex           = 12
-    btn.Parent           = tabBar
-    do local c = Instance.new("UICorner") c.CornerRadius = UDim.new(0, 8) c.Parent = btn end
-
-    local page = Instance.new("ScrollingFrame")
-    page.Size                   = UDim2.new(1, 0, 1, 0)
-    page.BackgroundTransparency = 1
-    page.BorderSizePixel        = 0
-    page.ScrollBarThickness     = 3
-    page.ScrollBarImageColor3   = Color3.fromRGB(90, 80, 150)
-    page.CanvasSize             = UDim2.new(0, 0, 0, 0)
-    page.Visible                = false
-    page.ZIndex                 = 12
-    page.Parent                 = contentArea
-    do
-        local l = Instance.new("UIListLayout")
-        l.Padding   = UDim.new(0, 8)
-        l.SortOrder = Enum.SortOrder.LayoutOrder
-        l.Parent    = page
-        l:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-            page.CanvasSize = UDim2.new(0, 0, 0, l.AbsoluteContentSize.Y + 8)
-        end)
-    end
-
-    tabPages[name]   = page
-    tabButtons[name] = btn
-    btn.MouseButton1Click:Connect(function() switchTab(name) end)
-    return page
-end
-
-local farmPage  = addTab("Farm",  1)
-local statsPage = addTab("Stats", 2)
-
--- ── Widget builders ───────────────────────────────────────────────────────
-local function makeRow(parent, order)
-    local row = Instance.new("Frame")
-    row.Size             = UDim2.new(1, 0, 0, 52)
-    row.BackgroundColor3 = Color3.fromRGB(22, 21, 34)
-    row.BorderSizePixel  = 0
-    row.LayoutOrder      = order
-    row.ZIndex           = 13
-    row.Parent           = parent
-    do
-        local c = Instance.new("UICorner") c.CornerRadius = UDim.new(0, 10) c.Parent = row
-        local s = Instance.new("UIStroke")
-        s.Color     = Color3.fromRGB(40, 38, 65)
-        s.Thickness = 1
-        s.Parent    = row
-    end
-    return row
-end
-
-local function makeLabel(parent, text, size, color, xalign, pos, sz)
-    local l = Instance.new("TextLabel")
-    l.Text                 = text
-    l.Font                 = Enum.Font.Gotham
-    l.TextSize             = size or 13
-    l.TextColor3           = color or Color3.fromRGB(200, 195, 240)
-    l.BackgroundTransparency = 1
-    l.TextXAlignment       = xalign or Enum.TextXAlignment.Left
-    l.Size                 = sz  or UDim2.new(1, -16, 1, 0)
-    l.Position             = pos or UDim2.new(0, 12, 0, 0)
-    l.ZIndex               = 14
-    l.Parent               = parent
-    return l
-end
-
-local function makeToggleRow(parent, order, labelText, defaultOn, onToggle)
-    local row = makeRow(parent, order)
-
-    makeLabel(row, labelText, 14, Color3.fromRGB(215, 210, 255),
-        Enum.TextXAlignment.Left,
-        UDim2.new(0, 12, 0, 0),
-        UDim2.new(1, -70, 1, 0))
-
-    local track = Instance.new("TextButton")
-    track.Size             = UDim2.new(0, 44, 0, 24)
-    track.Position         = UDim2.new(1, -54, 0.5, -12)
-    track.BackgroundColor3 = defaultOn and Color3.fromRGB(120, 90, 240) or Color3.fromRGB(45, 42, 72)
-    track.BorderSizePixel  = 0
-    track.Text             = ""
-    track.ZIndex           = 15
-    track.Parent           = row
-    do local c = Instance.new("UICorner") c.CornerRadius = UDim.new(1, 0) c.Parent = track end
-
-    local knob = Instance.new("Frame")
-    knob.Size             = UDim2.new(0, 18, 0, 18)
-    knob.Position         = defaultOn and UDim2.new(1, -21, 0.5, -9) or UDim2.new(0, 3, 0.5, -9)
-    knob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-    knob.BorderSizePixel  = 0
-    knob.ZIndex           = 16
-    knob.Parent           = track
-    do local c = Instance.new("UICorner") c.CornerRadius = UDim.new(1, 0) c.Parent = knob end
-
-    local state = defaultOn
-    local function applyState()
-        TweenService:Create(track, TweenInfo.new(0.15), {
-            BackgroundColor3 = state and Color3.fromRGB(120, 90, 240) or Color3.fromRGB(45, 42, 72)
-        }):Play()
-        TweenService:Create(knob, TweenInfo.new(0.15), {
-            Position = state and UDim2.new(1, -21, 0.5, -9) or UDim2.new(0, 3, 0.5, -9)
-        }):Play()
-        onToggle(state)
-    end
-
-    track.MouseButton1Click:Connect(function()
-        state = not state
-        applyState()
-    end)
-    row.MouseButton1Click:Connect(function()
-        state = not state
-        applyState()
-    end)
-
-    if defaultOn then
-        task.spawn(function() onToggle(true) end)
-    end
-
-    return row
-end
-
-local function makeTextBoxRow(parent, order, placeholder, btnLabel, onSubmit)
-    local row = Instance.new("Frame")
-    row.Size             = UDim2.new(1, 0, 0, 64)
-    row.BackgroundColor3 = Color3.fromRGB(22, 21, 34)
-    row.BorderSizePixel  = 0
-    row.LayoutOrder      = order
-    row.ZIndex           = 13
-    row.Parent           = parent
-    do
-        local c = Instance.new("UICorner") c.CornerRadius = UDim.new(0, 10) c.Parent = row
-        local s = Instance.new("UIStroke")
-        s.Color     = Color3.fromRGB(40, 38, 65)
-        s.Thickness = 1
-        s.Parent    = row
-    end
-
-    local box = Instance.new("TextBox")
-    box.Size             = UDim2.new(1, -100, 0, 28)
-    box.Position         = UDim2.new(0, 10, 0.5, -14)
-    box.BackgroundColor3 = Color3.fromRGB(18, 17, 28)
-    box.BorderSizePixel  = 0
-    box.PlaceholderText  = placeholder
-    box.PlaceholderColor3 = Color3.fromRGB(70, 65, 110)
-    box.Text             = ""
-    box.Font             = Enum.Font.Gotham
-    box.TextSize         = 13
-    box.TextColor3       = Color3.fromRGB(215, 210, 255)
-    box.ClearTextOnFocus = false
-    box.ZIndex           = 15
-    box.Parent           = row
-    do local c = Instance.new("UICorner") c.CornerRadius = UDim.new(0, 6) c.Parent = box end
-
-    local btn = Instance.new("TextButton")
-    btn.Size             = UDim2.new(0, 76, 0, 28)
-    btn.Position         = UDim2.new(1, -86, 0.5, -14)
-    btn.BackgroundColor3 = Color3.fromRGB(90, 70, 190)
-    btn.BorderSizePixel  = 0
-    btn.Text             = btnLabel
-    btn.Font             = Enum.Font.GothamBold
-    btn.TextSize         = 12
-    btn.TextColor3       = Color3.fromRGB(255, 255, 255)
-    btn.ZIndex           = 15
-    btn.Parent           = row
-    do local c = Instance.new("UICorner") c.CornerRadius = UDim.new(0, 6) c.Parent = btn end
-
-    btn.MouseButton1Click:Connect(function()
-        onSubmit(box.Text)
-    end)
-    return row, box
-end
-
-local function makeStatRow(parent, order, text)
-    local row = Instance.new("Frame")
-    row.Size             = UDim2.new(1, 0, 0, 40)
-    row.BackgroundColor3 = Color3.fromRGB(19, 18, 30)
-    row.BorderSizePixel  = 0
-    row.LayoutOrder      = order
-    row.ZIndex           = 13
-    row.Parent           = parent
-    do
-        local c = Instance.new("UICorner") c.CornerRadius = UDim.new(0, 8) c.Parent = row
-        local s = Instance.new("UIStroke")
-        s.Color     = Color3.fromRGB(40, 38, 65)
-        s.Thickness = 1
-        s.Parent    = row
-    end
-    return makeLabel(row, text, 13, Color3.fromRGB(180, 175, 230),
-        Enum.TextXAlignment.Left,
-        UDim2.new(0, 12, 0, 0),
-        UDim2.new(1, -16, 1, 0))
-end
-
--- ── FARM TAB ──────────────────────────────────────────────────────────────
-
--- Anti AFK (activado por defecto)
-local afkConn = nil
-local function enableAfk()
-    if afkConn then return end
-    afkConn = player.Idled:Connect(function()
-        VirtualUser:CaptureController()
-        VirtualUser:ClickButton2(Vector2.new())
-    end)
-end
-local function disableAfk()
-    if afkConn then
-        afkConn:Disconnect()
-        afkConn = nil
-    end
-end
-
-makeToggleRow(farmPage, 1, "Anti AFK", true, function(on)
-    if on then enableAfk() else disableAfk() end
-end)
-
--- Fast Rebirth
-local rebirthActive = false
-
-makeToggleRow(farmPage, 2, "Fast Rebirth", false, function(on)
-    rebirthActive = on
-    if on then
-        task.spawn(function()
-            while rebirthActive do
-                local char = player.Character
-                if char and char:FindFirstChildOfClass("Humanoid") then
-                    pcall(function()
-                        ReplicatedStorage.rEvents.rebirthRemote:InvokeServer("rebirthRequest")
-                    end)
-                end
-                task.wait(0.1)
-            end
-        end)
-    end
-end)
-
--- Speed
-local speedActive = false
-local speedValue  = 120
-
-local speedRow, speedBox = makeTextBoxRow(farmPage, 3, "Velocidad (ej: 120)", "Set", function(val)
-    local n = tonumber(val)
-    if n then speedValue = n end
-end)
-
-makeToggleRow(farmPage, 4, "Activar Speed", false, function(on)
-    speedActive = on
-    if on then
-        task.spawn(function()
-            while speedActive do
-                local char = player.Character
-                if char and char:FindFirstChildOfClass("Humanoid") then
-                    pcall(function()
-                        ReplicatedStorage.rEvents.changeSpeedSizeRemote:InvokeServer("changeSpeed", speedValue)
-                    end)
-                end
-                task.wait(0.5)
-            end
-        end)
-    end
-end)
-
--- Ocultar partículas
-local particleConn = nil
+-- OCULTAR FRAMES DE PARTÍCULAS
 local PARTICLE_FRAMES = { "strengthFrame", "durabilityFrame", "agilityFrame" }
-
-local function hideParticles()
+local function hideParticleFrames()
     for _, name in ipairs(PARTICLE_FRAMES) do
         local obj = ReplicatedStorage:FindFirstChild(name)
         if obj and obj:IsA("GuiObject") then
@@ -486,60 +25,427 @@ local function hideParticles()
         end
     end
 end
+hideParticleFrames()
 
-makeToggleRow(farmPage, 5, "Ocultar Partículas", false, function(on)
-    if on then
-        hideParticles()
-        if not particleConn then
-            particleConn = ReplicatedStorage.ChildAdded:Connect(function(child)
-                if table.find(PARTICLE_FRAMES, child.Name) and child:IsA("GuiObject") then
-                    child.Visible = false
-                end
-            end)
+ReplicatedStorage.ChildAdded:Connect(function(child)
+    if table.find(PARTICLE_FRAMES, child.Name) and child:IsA("GuiObject") then
+        child.Visible = false
+    end
+end)
+
+-- FORMATO DE NÚMEROS ABREVIADOS
+local function fmt(n)
+    local abs = math.abs(n)
+    local sign = n < 0 and "-" or ""
+    local suf = { {1e15,"Qa"}, {1e12,"T"}, {1e9,"B"}, {1e6,"M"}, {1e3,"K"} }
+    for _, s in ipairs(suf) do
+        if abs >= s[1] then
+            return sign .. string.format("%.2f%s", abs / s[1], s[2])
         end
-    else
-        if particleConn then
-            particleConn:Disconnect()
-            particleConn = nil
-        end
-        for _, name in ipairs(PARTICLE_FRAMES) do
-            local obj = ReplicatedStorage:FindFirstChild(name)
-            if obj and obj:IsA("GuiObject") then
-                obj.Visible = true
+    end
+    return sign .. string.format("%.2f", abs)
+end
+
+-- TABLA DE ROCAS
+local ROCKS = {
+    { label = "Ancient Jungle (10M)", req = 10000000 },
+    { label = "Muscle King (5M)", req = 5000000 },
+    { label = "Legend Gym (1M)", req = 1000000 },
+    { label = "Eternal Gym (750k)", req = 750000 },
+    { label = "Mythical Gym (400k)", req = 400000 },
+    { label = "Frost Gym (150k)", req = 150000 },
+    { label = "Legend Beach (5k)", req = 5000 },
+    { label = "Starter Island (100)", req = 100 },
+    { label = "Tiny Island (0)", req = 0 },
+}
+
+-- ESTADO GLOBAL
+local STATE = {
+    punchEnabled = false,
+    punchThreadA = nil,
+    punchThreadB = nil,
+    rockEnabled = false,
+    rockThread = nil,
+    rockIdx = nil,
+    rockSetters = {},
+    rebirthEnabled = false,
+    rebirthThread = nil,
+    sizeEnabled = false,
+    sizeThread = nil,
+    speedEnabled = false,
+    speedThread = nil,
+    speedValue = 120,
+    afkConn = nil,
+    heartbeatConn = nil,
+    closed = false,
+}
+
+-- FAST PUNCH
+local function gettool()
+    for _, v in pairs(LP.Backpack:GetChildren()) do
+        if v.Name == "Punch" then
+            local char = LP.Character
+            if char and char:FindFirstChild("Humanoid") then
+                char.Humanoid:EquipTool(v)
             end
         end
     end
+    pcall(function()
+        LP.muscleEvent:FireServer("punch", "leftHand")
+        LP.muscleEvent:FireServer("punch", "rightHand")
+    end)
+end
+
+local function startFastPunch()
+    STATE.punchEnabled = true
+    STATE.punchThreadA = task.spawn(function()
+        while STATE.punchEnabled do
+            pcall(function()
+                local punch = LP.Backpack:FindFirstChild("Punch")
+                if punch then
+                    local char = LP.Character
+                    if char and char:FindFirstChild("Humanoid") then
+                        char.Humanoid:EquipTool(punch)
+                    end
+                end
+                local eq = LP.Character and LP.Character:FindFirstChild("Punch")
+                if eq and eq:FindFirstChild("attackTime") then
+                    eq.attackTime.Value = 0
+                end
+            end)
+            task.wait(0.05)
+        end
+    end)
+
+    STATE.punchThreadB = task.spawn(function()
+        while STATE.punchEnabled do
+            pcall(function()
+                LP.muscleEvent:FireServer("punch", "rightHand")
+                LP.muscleEvent:FireServer("punch", "leftHand")
+                local eq = LP.Character and LP.Character:FindFirstChild("Punch")
+                if eq then
+                    eq:Activate()
+                end
+            end)
+            task.wait()
+        end
+    end)
+end
+
+local function stopFastPunch()
+    STATE.punchEnabled = false
+    if STATE.punchThreadA then
+        task.cancel(STATE.punchThreadA)
+        STATE.punchThreadA = nil
+    end
+    if STATE.punchThreadB then
+        task.cancel(STATE.punchThreadB)
+        STATE.punchThreadB = nil
+    end
+    pcall(function()
+        local eq = LP.Character and LP.Character:FindFirstChild("Punch")
+        if eq then
+            eq.Parent = LP.Backpack
+        end
+    end)
+end
+
+-- ROCK FARM
+local function handleRock(rock, lh)
+    pcall(function()
+        rock.Size = Vector3.new(2, 1, 1)
+        rock.Transparency = 1
+        rock.CanCollide = false
+        if rock:FindFirstChild("rockGui") then
+            for _, v in pairs(rock.rockGui:GetChildren()) do
+                v.Visible = false
+            end
+        end
+        for _, pname in ipairs({"rockEmitter","hoopParticle","lavaParticle"}) do
+            local p = rock:FindFirstChild(pname)
+            if p then
+                p:Destroy()
+            end
+        end
+        rock.CFrame = lh.CFrame
+        local tp = rock:FindFirstChild("TouchPart")
+        if tp then
+            tp.CFrame = lh.CFrame
+        end
+    end)
+end
+
+local function startRockFarm(rockDef)
+    STATE.rockEnabled = true
+    local neededDur = rockDef.req
+    STATE.rockThread = task.spawn(function()
+        while STATE.rockEnabled do
+            task.wait()
+            if not STATE.rockEnabled then break end
+            pcall(function()
+                if LP.Durability.Value < neededDur then return end
+                local char = LP.Character
+                if not char then return end
+                local lh = char:FindFirstChild("LeftHand")
+                local rh = char:FindFirstChild("RightHand")
+                if not lh or not rh then return end
+                for _, v in pairs(workspace.machinesFolder:GetDescendants()) do
+                    if not STATE.rockEnabled then break end
+                    if v.Name == "neededDurability" and v.Value == neededDur then
+                        local rock = v.Parent:FindFirstChild("Rock")
+                        if rock then
+                            handleRock(rock, lh)
+                            if not STATE.rockEnabled then break end
+                            firetouchinterest(rock, rh, 0)
+                            firetouchinterest(rock, rh, 1)
+                            firetouchinterest(rock, lh, 0)
+                            firetouchinterest(rock, lh, 1)
+                            firetouchinterest(rock, rh, 0)
+                            firetouchinterest(rock, rh, 1)
+                            firetouchinterest(rock, lh, 0)
+                            firetouchinterest(rock, lh, 1)
+                            if not STATE.rockEnabled then break end
+                            gettool()
+                        end
+                    end
+                end
+            end)
+        end
+    end)
+end
+
+local function stopRockFarm()
+    STATE.rockEnabled = false
+    if STATE.rockThread then
+        task.cancel(STATE.rockThread)
+        STATE.rockThread = nil
+    end
+end
+
+-- AUTO REBIRTH
+local function startRebirth()
+    STATE.rebirthEnabled = true
+    STATE.rebirthThread = task.spawn(function()
+        while STATE.rebirthEnabled do
+            pcall(function()
+                ReplicatedStorage.rEvents.rebirthRemote:InvokeServer("rebirthRequest")
+            end)
+            task.wait(0.05)
+        end
+    end)
+end
+
+local function stopRebirth()
+    STATE.rebirthEnabled = false
+    if STATE.rebirthThread then
+        task.cancel(STATE.rebirthThread)
+        STATE.rebirthThread = nil
+    end
+end
+
+-- AUTO SIZE 1
+local function startSize1()
+    STATE.sizeEnabled = true
+    STATE.sizeThread = task.spawn(function()
+        while STATE.sizeEnabled do
+            pcall(function()
+                if LP.Character and LP.Character:FindFirstChildOfClass("Humanoid") then
+                    ReplicatedStorage.rEvents.changeSpeedSizeRemote:InvokeServer("changeSize", 1)
+                end
+            end)
+            task.wait(0.05)
+        end
+    end)
+end
+
+local function stopSize1()
+    STATE.sizeEnabled = false
+    if STATE.sizeThread then
+        task.cancel(STATE.sizeThread)
+        STATE.sizeThread = nil
+    end
+end
+
+-- SPEED
+local function startSpeed()
+    STATE.speedEnabled = true
+    STATE.speedThread = task.spawn(function()
+        while STATE.speedEnabled do
+            pcall(function()
+                if LP.Character and LP.Character:FindFirstChildOfClass("Humanoid") then
+                    ReplicatedStorage.rEvents.changeSpeedSizeRemote:InvokeServer("changeSpeed", STATE.speedValue)
+                end
+            end)
+            task.wait(0.5)
+        end
+    end)
+end
+
+local function stopSpeed()
+    STATE.speedEnabled = false
+    if STATE.speedThread then
+        task.cancel(STATE.speedThread)
+        STATE.speedThread = nil
+    end
+end
+
+-- ANTI AFK
+local function startAntiAfk()
+    if STATE.afkConn then return end
+    STATE.afkConn = LP.Idled:Connect(function()
+        VirtualUser:CaptureController()
+        VirtualUser:ClickButton2(Vector2.new())
+    end)
+end
+
+local function stopAntiAfk()
+    if STATE.afkConn then
+        STATE.afkConn:Disconnect()
+        STATE.afkConn = nil
+    end
+end
+
+-- CLEANUP TOTAL
+local function destroyAll()
+    if STATE.closed then return end
+    STATE.closed = true
+    stopFastPunch()
+    stopRockFarm()
+    stopRebirth()
+    stopSize1()
+    stopSpeed()
+    stopAntiAfk()
+    if STATE.heartbeatConn then
+        STATE.heartbeatConn:Disconnect()
+        STATE.heartbeatConn = nil
+    end
+end
+
+-- STATS
+local leaderstats = LP:WaitForChild("leaderstats", 15)
+local statStrength = leaderstats and leaderstats:WaitForChild("Strength", 15)
+local statRebirths = leaderstats and leaderstats:WaitForChild("Rebirths", 15)
+local statKills = leaderstats and leaderstats:WaitForChild("Kills", 15)
+local statDura = LP:WaitForChild("Durability", 15)
+local sessionStart = tick()
+local startStrength = statStrength and statStrength.Value or 0
+local startDura = statDura and statDura.Value or 0
+local startRebirths = statRebirths and statRebirths.Value or 0
+local startKills = statKills and statKills.Value or 0
+
+-- UI — Carga e Inicialización de Interfaz (Elerium v2)
+local Hub = loadstring(game:HttpGet("https://raw.githubusercontent.com/memejames/elerium-v2-ui-library//main/Library", true))():AddWindow("100% FAST GLITCH - PAID VERSION", {
+    main_color = Color3.fromRGB(27, 2, 252),
+    min_size = Vector2.new(600, 600),
+    can_resize = false,
+})
+
+local tabFarm = Hub:AddTab("Farm")
+
+-- Interfaz: Fast Punch
+tabFarm:AddLabel("Fast Punch").TextSize = 20
+tabFarm:AddSwitch("Fast Punch (100%)", function(on)
+    if on then
+        startFastPunch()
+    else
+        stopFastPunch()
+        stopRockFarm()
+        for _, setter in ipairs(STATE.rockSetters) do
+            if setter then setter(false) end
+        end
+        STATE.rockIdx = nil
+    end
+end):Set(false)
+
+-- Interfaz: Rock Farm
+tabFarm:AddLabel("Rock Farm").TextSize = 20
+tabFarm:AddLabel("Activa Fast Punch antes de seleccionar roca.")
+
+for i, rockDef in ipairs(ROCKS) do
+    local rd = rockDef
+    local sw = tabFarm:AddSwitch(rd.label, function(on)
+        if on then
+            if not STATE.punchEnabled then
+                StarterGui:SetCore("SendNotification", {
+                    Title = "Fast Glitch 100%",
+                    Text = "Activa Fast Punch primero.",
+                    Duration = 3,
+                })
+                task.defer(function()
+                    if STATE.rockSetters[i] then STATE.rockSetters[i](false) end
+                end)
+                return
+            end
+            if STATE.rockIdx and STATE.rockIdx ~= i then
+                stopRockFarm()
+                if STATE.rockSetters[STATE.rockIdx] then STATE.rockSetters[STATE.rockIdx](false) end
+            end
+            STATE.rockIdx = i
+            startRockFarm(rd)
+        else
+            if STATE.rockIdx == i then
+                stopRockFarm()
+                STATE.rockIdx = nil
+            end
+        end
+    end)
+    STATE.rockSetters[i] = function(val)
+        if sw and sw.Set then sw:Set(val) end
+    end
+end
+
+-- Interfaz: Rebirth
+tabFarm:AddLabel("Rebirth").TextSize = 20
+tabFarm:AddSwitch("Auto Rebirth", function(on)
+    if on then startRebirth() else stopRebirth() end
+end):Set(false)
+
+tabFarm:AddSwitch("Auto Size 1 (para rebirths)", function(on)
+    if on then startSize1() else stopSize1() end
+end):Set(false)
+
+-- Interfaz: Speed
+tabFarm:AddLabel("Speed").TextSize = 20
+tabFarm:AddTextBox("Velocidad (default 120)", function(val)
+    local n = tonumber(val:match("%d+"))
+    if n then STATE.speedValue = n end
 end)
 
--- ── STATS TAB ─────────────────────────────────────────────────────────────
-local lbTime      = makeStatRow(statsPage, 1,  "Tiempo:  00:00:00")
-local lbStrength  = makeStatRow(statsPage, 2,  "Fuerza:  — | Ganada: —")
-local lbDura      = makeStatRow(statsPage, 3,  "Durabilidad:  — | Ganada: —")
-local lbRebirths  = makeStatRow(statsPage, 4,  "Rebirths:  — | Ganados: —")
+tabFarm:AddSwitch("Set Speed", function(on)
+    if on then startSpeed() else stopSpeed() end
+end):Set(false)
 
--- heartbeatConn se guarda para poder desconectarlo al cerrar
-heartbeatConn = RunService.Heartbeat:Connect(function()
-    if not statsPage.Visible then return end
+-- Interfaz: Misc
+local tabMisc = Hub:AddTab("Misc")
+tabMisc:AddLabel("Misc").TextSize = 20
 
-    local elapsed = tick() - sessionStart
-    local hh = math.floor(elapsed / 3600)
-    local mm = math.floor(elapsed % 3600 / 60)
-    local ss = math.floor(elapsed % 60)
-    lbTime.Text = string.format("Tiempo:  %02d:%02d:%02d", hh, mm, ss)
+tabMisc:AddSwitch("Anti AFK", function(on)
+    if on then startAntiAfk() else stopAntiAfk() end
+end):Set(true)
+startAntiAfk()
 
-    if statStrength then
-        local cur = statStrength.Value
-        lbStrength.Text = string.format("Fuerza:  %s  |  Ganada: %s", fmt(cur), fmt(cur - startStrength))
+tabMisc:AddSwitch("Ocultar Partículas", function(on)
+    for _, name in ipairs(PARTICLE_FRAMES) do
+        local obj = ReplicatedStorage:FindFirstChild(name)
+        if obj and obj:IsA("GuiObject") then
+            obj.Visible = not on
+        end
     end
-    if statDurability then
-        local cur = statDurability.Value
-        lbDura.Text = string.format("Durabilidad:  %s  |  Ganada: %s", fmt(cur), fmt(cur - startDurability))
-    end
-    if statRebirths then
-        local cur = statRebirths.Value
-        lbRebirths.Text = string.format("Rebirths:  %s  |  Ganados: %s", fmt(cur), fmt(cur - startRebirths))
-    end
-end)
+end):Set(true)
 
--- ── Activar primer tab ────────────────────────────────────────────────────
-switchTab("Farm")
+-- Interfaz: Stats
+local tabStats = Hub:AddTab("Stats")
+tabStats:AddLabel("Tiempo en sesion").TextSize = 20
+local lbTime = tabStats:AddLabel("0d 0h 0m 0s")
+lbTime.TextSize = 18
+tabStats:AddLabel("").TextSize = 10
+
+tabStats:AddLabel("Ritmo proyectado").TextSize = 20
+local lbStrPace = tabStats:AddLabel("Fuerza: - /Hour | - /Day")
+lbStrPace.TextSize = 17
+local lbDuraPace = tabStats:AddLabel("Durabilidad: - /Hour | - /Day")
+lbDuraPace.TextSize = 17
+local lbRebPace = tabStats:AddLabel("Rebirths: - /Hour | - /Day")
+lbRebPace.TextSize = 17
+tabStats:AddLabel("").TextSize = 10
+tabStats:AddLabel("Stats actuales").TextSize = 20
