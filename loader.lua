@@ -1,20 +1,28 @@
 local RAW      = "https://raw.githubusercontent.com/Young0xYT/Hub/main/modules/"
 local RAW_ROOT = "https://raw.githubusercontent.com/Young0xYT/Hub/main/"
 
-local MODULES = {
-    {
-        name = "Fast Glitch 90%",
-        file = "fg90.lua",
-        desc = "Simple Fast Glitch (Activa el Anti AFK)"
-    },
-    {
-        name = "Fast Glitch 100%",
-        file = "fg100.lua",
-        desc = "Paid Version — Solo usuarios autorizados"
-    },
-}
+-- ── Carga la lista de módulos desde modules.lua ────────────────────────────
+-- Para agregar módulos editá modules.lua en el repo, sin tocar este archivo.
+local MODULES = {}
+local PAID_FILES = {}
 
-local PAID_FILE = "fg100.lua"
+do
+    local ok, result = pcall(function()
+        return loadstring(game:HttpGet(RAW_ROOT .. "modules.lua", true))()
+    end)
+    if ok and type(result) == "table" then
+        MODULES = result
+    else
+        warn("[Young0x Hub] No se pudo cargar modules.lua: " .. tostring(result))
+    end
+    for _, mod in ipairs(MODULES) do
+        if mod.paid then
+            PAID_FILES[mod.file] = true
+        end
+    end
+end
+
+-- ──────────────────────────────────────────────────────────────────────────
 
 local Players      = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
@@ -318,28 +326,43 @@ for i, mod in ipairs(MODULES) do
             Color = Color3.fromRGB(130, 110, 255)
         }):Play()
 
-        if mod.file == PAID_FILE then
-            local allowed = isWhitelisted()
-            if not allowed then
-                clicked = false
-                TweenService:Create(row, TweenInfo.new(0.14), {
-                    BackgroundColor3 = Color3.fromRGB(22, 21, 34)
-                }):Play()
-                TweenService:Create(rowStroke, TweenInfo.new(0.14), {
-                    Color = Color3.fromRGB(40, 38, 65)
-                }):Play()
-                StarterGui:SetCore("SendNotification", {
-                    Title    = "Young0x Hub",
-                    Text     = "No estás en la WhiteList.",
-                    Duration = 5,
-                })
-                return
-            end
-        end
+        if PAID_FILES[mod.file] then
+            -- Feedback visual mientras verifica
+            hubSub.Text      = "Verificando acceso..."
+            hubSub.TextColor3 = Color3.fromRGB(160, 140, 220)
 
-        pendingFile = mod.file
-        task.wait(0.12)
-        closeHub()
+            task.spawn(function()
+                local allowed = isWhitelisted()
+
+                -- Restaurar subtítulo
+                hubSub.Text       = "Seleccioná un Script!"
+                hubSub.TextColor3 = Color3.fromRGB(95, 90, 130)
+
+                if not allowed then
+                    clicked = false
+                    TweenService:Create(row, TweenInfo.new(0.14), {
+                        BackgroundColor3 = Color3.fromRGB(22, 21, 34)
+                    }):Play()
+                    TweenService:Create(rowStroke, TweenInfo.new(0.14), {
+                        Color = Color3.fromRGB(40, 38, 65)
+                    }):Play()
+                    StarterGui:SetCore("SendNotification", {
+                        Title    = "Young0x Hub",
+                        Text     = "No estás en la WhiteList.",
+                        Duration = 5,
+                    })
+                    return
+                end
+
+                pendingFile = mod.file
+                task.wait(0.12)
+                closeHub()
+            end)
+        else
+            pendingFile = mod.file
+            task.wait(0.12)
+            closeHub()
+        end
     end)
 end
 
