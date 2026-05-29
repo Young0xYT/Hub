@@ -1,0 +1,24 @@
+-- modules.lua
+-- Editá este archivo para agregar o quitar módulos.
+-- El loader lo lee automáticamente; no necesita ser modificado.
+
+return {
+    {
+        name = "Fast Glitch 90%",
+        file = "fg90.lua",
+        desc = "Simple Fast Glitch (Activa el Anti AFK)"
+    },
+    {
+        name = "Fast Glitch 100%",
+        file = "fg100.lua",
+        desc = "Paid Version — Solo usuarios autorizados",
+        paid = true   -- marca este módulo como de pago
+    },
+    -- Para agregar un módulo nuevo, copiá un bloque de arriba y editalo.
+    -- Ejemplo:
+    -- {
+    --     name = "Nuevo Script",
+    --     file = "nuevo.lua",
+    --     desc = "Descripción corta"
+    -- },
+}
