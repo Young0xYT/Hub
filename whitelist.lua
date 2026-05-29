@@ -1,4 +1,4 @@
 return {
-    ["Young0xYT"] = true,
-    ["CuentaDePrueba0x"] = true,
+    [10986230819] = true,
+    -- [123456789] = true,  -- OtroUsuario
 }
