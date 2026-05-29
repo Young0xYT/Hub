@@ -1,255 +1,322 @@
 -- ============================================================
---  HUB LOADER — v1.0
---  Autor  : Young0xYT
---  Repo   : github.com/Young0xYT/Hub
---  Regla  : Este archivo NO conoce el contenido de los módulos.
---           Solo sabe cómo cargarlos.
+--   HUB LOADER
+--   Young0xYT — github.com/Young0xYT/Hub
 -- ============================================================
 
-local Hub = {}
+-- ─────────────────────────────────────────
+--  BASE RAW DE TU REPO (no tocar)
+-- ─────────────────────────────────────────
+local RAW = "https://raw.githubusercontent.com/Young0xYT/Hub/main/modules/"
 
--- ─────────────────────────────────────────────
---  CONFIGURACIÓN CENTRAL
---  Solo edita este bloque cuando agregues módulos
--- ─────────────────────────────────────────────
-local CONFIG = {
-    repo_base = "https://raw.githubusercontent.com/Young0xYT/Hub/main/modules/",
-    
-    version = "1.0.0",
-
-    -- REGISTRO DE MÓDULOS
-    -- Para agregar un módulo nuevo: solo agrega una entrada aquí.
-    -- No toques nada más del loader.
-    modules = {
-        {
-            id       = "fg90",
-            file     = "fg90.lua",
-            name     = "FG90",
-            desc     = "Descripción del módulo FG90",
-            version  = "1.0.0",
-            enabled  = true,
-        },
-        {
-            id       = "fg100",
-            file     = "fg100.lua",
-            name     = "FG100",
-            desc     = "Descripción del módulo FG100",
-            version  = "1.0.0",
-            enabled  = true,
-        },
-        {
-            id       = "fastfarm",
-            file     = "fastfarm.lua",
-            name     = "Fast Farm",
-            desc     = "Automatización de farming",
-            version  = "1.0.0",
-            enabled  = true,
-        },
-        {
-            id       = "autorebirth",
-            file     = "autorebirth.lua",
-            name     = "Auto Rebirth",
-            desc     = "Sistema de rebirth automático",
-            version  = "1.0.0",
-            enabled  = true,
-        },
-        -- TEMPLATE para módulos futuros:
-        -- {
-        --     id      = "nuevo_modulo",
-        --     file    = "nuevo_modulo.lua",
-        --     name    = "Nombre visible",
-        --     desc    = "Qué hace este módulo",
-        --     version = "1.0.0",
-        --     enabled = true,
-        -- },
-    }
+-- ─────────────────────────────────────────
+--  ╔══════════════════════════════════════╗
+--  ║         AGREGAR MÓDULOS AQUÍ         ║
+--  ╚══════════════════════════════════════╝
+--
+--  Para agregar una opción nueva al Hub:
+--
+--  1. Subí el archivo .lua a /modules/ en GitHub
+--  2. Copiá el bloque de abajo y pegalo al final de la lista
+--  3. Cambiá los valores
+--
+--  Campos:
+--    name    → texto que aparece en el botón del Hub
+--    file    → nombre exacto del archivo en /modules/
+--    desc    → descripción corta debajo del botón
+--
+-- ─────────────────────────────────────────
+local MODULES = {
+    {
+        name = "FG90",
+        file = "fg90.lua",
+        desc = "Script principal FG90"
+    },
+    -- EJEMPLO: descomentá esto para agregar FG100
+    -- {
+    --     name = "FG100",
+    --     file = "fg100.lua",
+    --     desc = "Script principal FG100"
+    -- },
+    --
+    -- EJEMPLO: Fast Farm
+    -- {
+    --     name = "Fast Farm",
+    --     file = "fastfarm.lua",
+    --     desc = "Automatización de farming"
+    -- },
 }
+-- ─────────────────────────────────────────
+--  FIN DE LA ZONA EDITABLE
+-- ─────────────────────────────────────────
 
--- ─────────────────────────────────────────────
---  ESTADO INTERNO
---  El loader registra qué módulos están cargados
---  y cuáles fallaron. Los módulos no leen esto.
--- ─────────────────────────────────────────────
-local State = {
-    loaded  = {},   -- { [id] = true/false }
-    errors  = {},   -- { [id] = "mensaje de error" }
-    started = false
-}
 
--- ─────────────────────────────────────────────
---  LOGGER
---  Sistema de mensajes interno del loader
--- ─────────────────────────────────────────────
-local function log(tipo, msg)
-    local prefix = {
-        info  = "[HUB] ",
-        ok    = "[OK]  ",
-        fail  = "[ERR] ",
-        warn  = "[!]   ",
-    }
-    print((prefix[tipo] or "[?]   ") .. msg)
+-- ════════════════════════════════════════════
+--   A PARTIR DE ACÁ NO SE TOCA NADA
+-- ════════════════════════════════════════════
+
+local Players      = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local player       = Players.LocalPlayer
+local playerGui    = player:WaitForChild("PlayerGui")
+
+-- Limpia instancias anteriores del Hub
+if playerGui:FindFirstChild("HubGui") then
+    playerGui.HubGui:Destroy()
 end
 
--- ─────────────────────────────────────────────
---  FETCH
---  Descarga el contenido de una URL
---  Devuelve: contenido (string) o nil + error
--- ─────────────────────────────────────────────
-local function fetch(url)
+-- ─────────────────────────────────────────
+--  FUNCIÓN: cargar módulo desde GitHub
+-- ─────────────────────────────────────────
+local function loadModule(file)
+    local url = RAW .. file
     local ok, result = pcall(function()
-        return game:HttpGet(url, true)
+        return loadstring(game:HttpGet(url, true))()
     end)
-    if ok and result and #result > 0 then
-        return result, nil
-    else
-        return nil, tostring(result)
-    end
-end
-
--- ─────────────────────────────────────────────
---  EXECUTE
---  Ejecuta un string de código Lua de forma segura
---  Devuelve: true/nil + error
--- ─────────────────────────────────────────────
-local function execute(code, module_id)
-    local fn, compile_err = loadstring(code)
-    if not fn then
-        return nil, "Error de compilación: " .. tostring(compile_err)
-    end
-    local ok, run_err = pcall(fn)
     if not ok then
-        return nil, "Error de ejecución: " .. tostring(run_err)
-    end
-    return true, nil
-end
-
--- ─────────────────────────────────────────────
---  LOAD MODULE
---  Lógica central: descarga y ejecuta un módulo
---  El loader no sabe qué hace el módulo.
---  Solo sabe si cargó bien o mal.
--- ─────────────────────────────────────────────
-local function loadModule(mod)
-    -- Módulo deshabilitado en CONFIG
-    if not mod.enabled then
-        log("warn", mod.name .. " está deshabilitado en CONFIG. Saltando.")
-        State.loaded[mod.id] = false
+        warn("[HUB] Error cargando " .. file .. ": " .. tostring(result))
         return false
     end
-
-    -- Ya fue cargado antes
-    if State.loaded[mod.id] then
-        log("warn", mod.name .. " ya está cargado. Saltando.")
-        return true
-    end
-
-    log("info", "Cargando " .. mod.name .. " v" .. mod.version .. "...")
-
-    local url  = CONFIG.repo_base .. mod.file
-    local code, fetch_err = fetch(url)
-
-    if not code then
-        local err_msg = "No se pudo descargar " .. mod.file .. " → " .. tostring(fetch_err)
-        log("fail", err_msg)
-        State.loaded[mod.id] = false
-        State.errors[mod.id] = err_msg
-        return false
-    end
-
-    local ok, exec_err = execute(code, mod.id)
-
-    if not ok then
-        log("fail", mod.name .. " falló al ejecutar → " .. exec_err)
-        State.loaded[mod.id] = false
-        State.errors[mod.id] = exec_err
-        return false
-    end
-
-    log("ok", mod.name .. " cargado correctamente.")
-    State.loaded[mod.id] = true
     return true
 end
 
--- ─────────────────────────────────────────────
---  API PÚBLICA DEL HUB
--- ─────────────────────────────────────────────
+-- ─────────────────────────────────────────
+--  CONSTRUCCIÓN DEL GUI
+-- ─────────────────────────────────────────
+local gui = Instance.new("ScreenGui")
+gui.Name            = "HubGui"
+gui.ResetOnSpawn    = false
+gui.ZIndexBehavior  = Enum.ZIndexBehavior.Sibling
+gui.Parent          = playerGui
 
--- Carga un módulo por su ID
-function Hub.load(module_id)
-    for _, mod in ipairs(CONFIG.modules) do
-        if mod.id == module_id then
-            return loadModule(mod)
-        end
-    end
-    log("fail", "Módulo '" .. module_id .. "' no existe en el registro.")
-    return false
-end
+-- Fondo semitransparente
+local backdrop = Instance.new("Frame")
+backdrop.Name          = "Backdrop"
+backdrop.Size          = UDim2.new(1, 0, 1, 0)
+backdrop.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+backdrop.BackgroundTransparency = 0.4
+backdrop.BorderSizePixel = 0
+backdrop.Parent        = gui
 
--- Carga todos los módulos habilitados
-function Hub.loadAll()
-    log("info", "Iniciando carga de todos los módulos...")
-    local total, ok_count, fail_count = 0, 0, 0
+-- Ventana principal
+local CARD_W, CARD_H = 340, 80 + (#MODULES * 74) + 20
+CARD_H = math.clamp(CARD_H, 180, 600)
 
-    for _, mod in ipairs(CONFIG.modules) do
-        if mod.enabled then
-            total = total + 1
-            local success = loadModule(mod)
+local card = Instance.new("Frame")
+card.Name              = "Card"
+card.Size              = UDim2.new(0, CARD_W, 0, CARD_H)
+card.Position          = UDim2.new(0.5, -CARD_W/2, 0.5, -CARD_H/2)
+card.BackgroundColor3  = Color3.fromRGB(15, 15, 20)
+card.BorderSizePixel   = 0
+card.Parent            = gui
+
+local cardCorner = Instance.new("UICorner")
+cardCorner.CornerRadius = UDim.new(0, 12)
+cardCorner.Parent = card
+
+-- Borde sutil
+local stroke = Instance.new("UIStroke")
+stroke.Color          = Color3.fromRGB(60, 60, 80)
+stroke.Thickness      = 1
+stroke.Parent         = card
+
+-- Header
+local header = Instance.new("Frame")
+header.Name            = "Header"
+header.Size            = UDim2.new(1, 0, 0, 52)
+header.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+header.BorderSizePixel = 0
+header.Parent          = card
+
+local headerCorner = Instance.new("UICorner")
+headerCorner.CornerRadius = UDim.new(0, 12)
+headerCorner.Parent = header
+
+-- Patch para que solo redondee arriba
+local headerPatch = Instance.new("Frame")
+headerPatch.Size              = UDim2.new(1, 0, 0, 12)
+headerPatch.Position          = UDim2.new(0, 0, 1, -12)
+headerPatch.BackgroundColor3  = Color3.fromRGB(20, 20, 30)
+headerPatch.BorderSizePixel   = 0
+headerPatch.Parent            = header
+
+-- Título
+local title = Instance.new("TextLabel")
+title.Text              = "⬡  HUB"
+title.Font              = Enum.Font.GothamBold
+title.TextSize          = 18
+title.TextColor3        = Color3.fromRGB(220, 220, 255)
+title.BackgroundTransparency = 1
+title.Size              = UDim2.new(1, -50, 1, 0)
+title.Position          = UDim2.new(0, 16, 0, 0)
+title.TextXAlignment    = Enum.TextXAlignment.Left
+title.Parent            = header
+
+-- Subtítulo / estado
+local subtitle = Instance.new("TextLabel")
+subtitle.Name           = "Subtitle"
+subtitle.Text           = "Seleccioná un script"
+subtitle.Font           = Enum.Font.Gotham
+subtitle.TextSize       = 11
+subtitle.TextColor3     = Color3.fromRGB(120, 120, 160)
+subtitle.BackgroundTransparency = 1
+subtitle.Size           = UDim2.new(1, -50, 0, 14)
+subtitle.Position       = UDim2.new(0, 16, 0, 32)
+subtitle.TextXAlignment = Enum.TextXAlignment.Left
+subtitle.Parent         = card
+
+-- Botón cerrar
+local closeBtn = Instance.new("TextButton")
+closeBtn.Text           = "✕"
+closeBtn.Font           = Enum.Font.GothamBold
+closeBtn.TextSize       = 14
+closeBtn.TextColor3     = Color3.fromRGB(150, 150, 180)
+closeBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
+closeBtn.Size           = UDim2.new(0, 28, 0, 28)
+closeBtn.Position       = UDim2.new(1, -38, 0, 12)
+closeBtn.BorderSizePixel = 0
+closeBtn.Parent         = card
+
+local closeBtnCorner = Instance.new("UICorner")
+closeBtnCorner.CornerRadius = UDim.new(0, 6)
+closeBtnCorner.Parent = closeBtn
+
+closeBtn.MouseButton1Click:Connect(function()
+    local tween = TweenService:Create(card,
+        TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
+        { Position = UDim2.new(0.5, -CARD_W/2, 1.2, 0), BackgroundTransparency = 1 }
+    )
+    tween:Play()
+    tween.Completed:Connect(function() gui:Destroy() end)
+end)
+
+-- Área scrolleable de botones
+local scroll = Instance.new("ScrollingFrame")
+scroll.Name                    = "Scroll"
+scroll.Size                    = UDim2.new(1, -24, 1, -80)
+scroll.Position                = UDim2.new(0, 12, 0, 68)
+scroll.BackgroundTransparency  = 1
+scroll.BorderSizePixel         = 0
+scroll.ScrollBarThickness      = 3
+scroll.ScrollBarImageColor3    = Color3.fromRGB(80, 80, 120)
+scroll.CanvasSize              = UDim2.new(0, 0, 0, #MODULES * 74)
+scroll.Parent                  = card
+
+local listLayout = Instance.new("UIListLayout")
+listLayout.Padding       = UDim.new(0, 8)
+listLayout.SortOrder     = Enum.SortOrder.LayoutOrder
+listLayout.Parent        = scroll
+
+-- ─────────────────────────────────────────
+--  GENERAR BOTONES DESDE MODULES
+-- ─────────────────────────────────────────
+for i, mod in ipairs(MODULES) do
+    local btn = Instance.new("TextButton")
+    btn.Name              = "Btn_" .. mod.name
+    btn.Size              = UDim2.new(1, 0, 0, 62)
+    btn.BackgroundColor3  = Color3.fromRGB(25, 25, 38)
+    btn.BorderSizePixel   = 0
+    btn.Text              = ""
+    btn.LayoutOrder       = i
+    btn.Parent            = scroll
+
+    local btnCorner = Instance.new("UICorner")
+    btnCorner.CornerRadius = UDim.new(0, 8)
+    btnCorner.Parent = btn
+
+    local btnStroke = Instance.new("UIStroke")
+    btnStroke.Color     = Color3.fromRGB(45, 45, 65)
+    btnStroke.Thickness = 1
+    btnStroke.Parent    = btn
+
+    -- Nombre del módulo
+    local modName = Instance.new("TextLabel")
+    modName.Text          = mod.name
+    modName.Font          = Enum.Font.GothamBold
+    modName.TextSize      = 14
+    modName.TextColor3    = Color3.fromRGB(210, 210, 255)
+    modName.BackgroundTransparency = 1
+    modName.Size          = UDim2.new(1, -16, 0, 22)
+    modName.Position      = UDim2.new(0, 12, 0, 10)
+    modName.TextXAlignment = Enum.TextXAlignment.Left
+    modName.Parent        = btn
+
+    -- Descripción
+    local modDesc = Instance.new("TextLabel")
+    modDesc.Text          = mod.desc
+    modDesc.Font          = Enum.Font.Gotham
+    modDesc.TextSize      = 11
+    modDesc.TextColor3    = Color3.fromRGB(100, 100, 140)
+    modDesc.BackgroundTransparency = 1
+    modDesc.Size          = UDim2.new(1, -16, 0, 16)
+    modDesc.Position      = UDim2.new(0, 12, 0, 34)
+    modDesc.TextXAlignment = Enum.TextXAlignment.Left
+    modDesc.Parent        = btn
+
+    -- Indicador de estado (punto de color)
+    local dot = Instance.new("Frame")
+    dot.Name             = "Dot"
+    dot.Size             = UDim2.new(0, 8, 0, 8)
+    dot.Position         = UDim2.new(1, -18, 0.5, -4)
+    dot.BackgroundColor3 = Color3.fromRGB(80, 80, 100)
+    dot.BorderSizePixel  = 0
+    dot.Parent           = btn
+
+    local dotCorner = Instance.new("UICorner")
+    dotCorner.CornerRadius = UDim.new(1, 0)
+    dotCorner.Parent = dot
+
+    -- Hover
+    btn.MouseEnter:Connect(function()
+        TweenService:Create(btn, TweenInfo.new(0.15), {
+            BackgroundColor3 = Color3.fromRGB(35, 35, 55)
+        }):Play()
+    end)
+    btn.MouseLeave:Connect(function()
+        TweenService:Create(btn, TweenInfo.new(0.15), {
+            BackgroundColor3 = Color3.fromRGB(25, 25, 38)
+        }):Play()
+    end)
+
+    -- Click: cargar módulo
+    btn.MouseButton1Click:Connect(function()
+        -- Evita doble click mientras carga
+        btn.Active = false
+
+        subtitle.Text      = "Cargando " .. mod.name .. "..."
+        subtitle.TextColor3 = Color3.fromRGB(180, 180, 80)
+
+        TweenService:Create(dot, TweenInfo.new(0.2), {
+            BackgroundColor3 = Color3.fromRGB(200, 160, 40)
+        }):Play()
+
+        task.spawn(function()
+            local success = loadModule(mod.file)
+
             if success then
-                ok_count = ok_count + 1
+                subtitle.Text       = mod.name .. " cargado ✓"
+                subtitle.TextColor3 = Color3.fromRGB(80, 200, 120)
+                TweenService:Create(dot, TweenInfo.new(0.2), {
+                    BackgroundColor3 = Color3.fromRGB(60, 200, 100)
+                }):Play()
+                TweenService:Create(btn, TweenInfo.new(0.2), {
+                    BackgroundColor3 = Color3.fromRGB(20, 45, 30)
+                }):Play()
+                btnStroke.Color = Color3.fromRGB(40, 120, 60)
             else
-                fail_count = fail_count + 1
+                subtitle.Text       = "Error al cargar " .. mod.name
+                subtitle.TextColor3 = Color3.fromRGB(220, 80, 80)
+                TweenService:Create(dot, TweenInfo.new(0.2), {
+                    BackgroundColor3 = Color3.fromRGB(220, 60, 60)
+                }):Play()
+                btn.Active = true  -- Permite reintentar si falló
             end
-        end
-    end
-
-    log("info", ("Resultado: %d/%d módulos cargados. Fallos: %d"):format(ok_count, total, fail_count))
+        end)
+    end)
 end
 
--- Muestra el estado actual de todos los módulos
-function Hub.status()
-    print("\n══════════════════════════════════")
-    print("  HUB v" .. CONFIG.version .. " — Estado de módulos")
-    print("══════════════════════════════════")
-    for _, mod in ipairs(CONFIG.modules) do
-        local estado
-        if not mod.enabled then
-            estado = "DESHABILITADO"
-        elseif State.loaded[mod.id] == true then
-            estado = "CARGADO"
-        elseif State.loaded[mod.id] == false then
-            estado = "FALLÓ"
-        else
-            estado = "PENDIENTE"
-        end
-        print(("  %-15s v%-8s [%s]"):format(mod.name, mod.version, estado))
-        if State.errors[mod.id] then
-            print("    └─ " .. State.errors[mod.id])
-        end
-    end
-    print("══════════════════════════════════\n")
-end
-
--- Lista los módulos disponibles (sin cargarlos)
-function Hub.list()
-    print("\n── Módulos registrados en Hub v" .. CONFIG.version .. " ──")
-    for i, mod in ipairs(CONFIG.modules) do
-        local flag = mod.enabled and "✓" or "✗"
-        print(("  %s [%d] %-15s — %s"):format(flag, i, mod.name, mod.desc))
-    end
-    print("")
-end
-
--- Devuelve si un módulo fue cargado exitosamente
-function Hub.isLoaded(module_id)
-    return State.loaded[module_id] == true
-end
-
--- ─────────────────────────────────────────────
---  ARRANQUE AUTOMÁTICO
--- ─────────────────────────────────────────────
-log("info", "Hub v" .. CONFIG.version .. " inicializado.")
-Hub.list()
-Hub.loadAll()
-Hub.status()
-
-return Hub
+-- Animación de entrada
+card.Position = UDim2.new(0.5, -CARD_W/2, 1.2, 0)
+TweenService:Create(card,
+    TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+    { Position = UDim2.new(0.5, -CARD_W/2, 0.5, -CARD_H/2) }
+):Play()
