@@ -1,32 +1,30 @@
-local RAW      = "https://raw.githubusercontent.com/Young0xYT/Hub/main/modules/"
-local RAW_ROOT = "https://raw.githubusercontent.com/Young0xYT/Hub/main/"
+local RAW = "https://raw.githubusercontent.com/Young0xYT/Hub/main/modules/"
 
--- ── Carga la lista de módulos desde modules.lua ────────────────────────────
--- Para agregar módulos editá modules.lua en el repo, sin tocar este archivo.
-local MODULES = {}
-local PAID_FILES = {}
-
-do
-    local ok, result = pcall(function()
-        return loadstring(game:HttpGet(RAW_ROOT .. "modules.lua", true))()
-    end)
-    if ok and type(result) == "table" then
-        MODULES = result
-    else
-        warn("[Young0x Hub] No se pudo cargar modules.lua: " .. tostring(result))
-    end
-    for _, mod in ipairs(MODULES) do
-        if mod.paid then
-            PAID_FILES[mod.file] = true
-        end
-    end
-end
-
--- ──────────────────────────────────────────────────────────────────────────
+local MODULES = {
+    {
+        name = "Fast Glitch 90%",
+        file = "fg90.lua",
+        desc = "Simple Fast Glitch (Activa el Anti AFK)"
+    },
+    -- {
+    --     name = "FG100",
+    --     file = "fg100.lua",
+    --     desc = "Fast Glitch 100%"
+    -- },
+    -- {
+    --     name = "Fast Farm",
+    --     file = "fastfarm.lua",
+    --     desc = "Automatización de farming"
+    -- },
+    -- {
+    --     name = "Auto Rebirth",
+    --     file = "autorebirth.lua",
+    --     desc = "Sistema de rebirth automático"
+    -- },
+}
 
 local Players      = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
-local StarterGui   = game:GetService("StarterGui")
 local player       = Players.LocalPlayer
 local playerGui    = player:WaitForChild("PlayerGui")
 
@@ -34,12 +32,11 @@ if playerGui:FindFirstChild("HubGui") then
     playerGui.HubGui:Destroy()
 end
 
-local CARD_W    = 420
-local ROW_H     = 76
-local ROW_GAP   = 8
-local HEADER_H  = 72
-local PADDING_B = 16
-local CARD_H    = HEADER_H + PADDING_B + (#MODULES * (ROW_H + ROW_GAP))
+local CARD_W   = 420
+local ROW_H    = 76
+local ROW_GAP  = 8
+local HEADER_H = 72
+local CARD_H   = HEADER_H + 16 + (#MODULES * (ROW_H + ROW_GAP))
 
 local gui = Instance.new("ScreenGui")
 gui.Name           = "HubGui"
@@ -52,33 +49,22 @@ local pendingFile = nil
 local closing     = false
 local card
 
-local function isWhitelisted()
-    local ok, result = pcall(function()
-        return loadstring(game:HttpGet(RAW_ROOT .. "whitelist.lua", true))()
-    end)
-    if not ok or type(result) ~= "table" then
-        return false
-    end
-    return result[player.UserId] == true
-end
-
 local function closeHub()
     if closing then return end
     closing = true
-
-    local tweenOut = TweenService:Create(card,
+    local t = TweenService:Create(card,
         TweenInfo.new(0.32, Enum.EasingStyle.Back, Enum.EasingDirection.In),
         { Position = UDim2.new(0.5, -CARD_W / 2, 1.5, 0) }
     )
-    tweenOut:Play()
-    tweenOut.Completed:Connect(function()
+    t:Play()
+    t.Completed:Connect(function()
         gui:Destroy()
         if pendingFile then
             local ok, err = pcall(function()
                 loadstring(game:HttpGet(RAW .. pendingFile, true))()
             end)
             if not ok then
-                warn("[Young0x Hub] Error al ejecutar " .. pendingFile .. ": " .. tostring(err))
+                warn("[Young0x Hub] " .. pendingFile .. ": " .. tostring(err))
             end
         end
     end)
@@ -93,34 +79,33 @@ card.BorderSizePixel  = 0
 card.ZIndex           = 10
 card.Parent           = gui
 
-local cardCorner = Instance.new("UICorner")
-cardCorner.CornerRadius = UDim.new(0, 16)
-cardCorner.Parent = card
+local cc = Instance.new("UICorner")
+cc.CornerRadius = UDim.new(0, 16)
+cc.Parent = card
 
-local cardStroke = Instance.new("UIStroke")
-cardStroke.Color     = Color3.fromRGB(55, 50, 90)
-cardStroke.Thickness = 1.2
-cardStroke.Parent    = card
+local cs = Instance.new("UIStroke")
+cs.Color     = Color3.fromRGB(55, 50, 90)
+cs.Thickness = 1.2
+cs.Parent    = card
 
 local header = Instance.new("Frame")
 header.Size             = UDim2.new(1, 0, 0, HEADER_H)
-header.Position         = UDim2.new(0, 0, 0, 0)
 header.BackgroundColor3 = Color3.fromRGB(20, 19, 32)
 header.BorderSizePixel  = 0
 header.ZIndex           = 11
 header.Parent           = card
 
-local headerCorner = Instance.new("UICorner")
-headerCorner.CornerRadius = UDim.new(0, 16)
-headerCorner.Parent = header
+local hc = Instance.new("UICorner")
+hc.CornerRadius = UDim.new(0, 16)
+hc.Parent = header
 
-local headerPatch = Instance.new("Frame")
-headerPatch.Size             = UDim2.new(1, 0, 0, 16)
-headerPatch.Position         = UDim2.new(0, 0, 1, -16)
-headerPatch.BackgroundColor3 = Color3.fromRGB(20, 19, 32)
-headerPatch.BorderSizePixel  = 0
-headerPatch.ZIndex           = 11
-headerPatch.Parent           = header
+local hp = Instance.new("Frame")
+hp.Size             = UDim2.new(1, 0, 0, 16)
+hp.Position         = UDim2.new(0, 0, 1, -16)
+hp.BackgroundColor3 = Color3.fromRGB(20, 19, 32)
+hp.BorderSizePixel  = 0
+hp.ZIndex           = 11
+hp.Parent           = header
 
 local accent = Instance.new("Frame")
 accent.Size             = UDim2.new(0, 4, 0, 32)
@@ -130,33 +115,33 @@ accent.BorderSizePixel  = 0
 accent.ZIndex           = 12
 accent.Parent           = header
 
-local accentCorner = Instance.new("UICorner")
-accentCorner.CornerRadius = UDim.new(0, 4)
-accentCorner.Parent = accent
+local ac = Instance.new("UICorner")
+ac.CornerRadius = UDim.new(0, 4)
+ac.Parent = accent
 
 local hubTitle = Instance.new("TextLabel")
-hubTitle.Text              = "Young0x Hub"
-hubTitle.Font              = Enum.Font.GothamBold
-hubTitle.TextSize          = 20
-hubTitle.TextColor3        = Color3.fromRGB(235, 230, 255)
+hubTitle.Text                 = "Young0x Hub"
+hubTitle.Font                 = Enum.Font.GothamBold
+hubTitle.TextSize             = 20
+hubTitle.TextColor3           = Color3.fromRGB(235, 230, 255)
 hubTitle.BackgroundTransparency = 1
-hubTitle.Size              = UDim2.new(1, -80, 0, 26)
-hubTitle.Position          = UDim2.new(0, 26, 0, 12)
-hubTitle.TextXAlignment    = Enum.TextXAlignment.Left
-hubTitle.ZIndex            = 12
-hubTitle.Parent            = header
+hubTitle.Size                 = UDim2.new(1, -80, 0, 26)
+hubTitle.Position             = UDim2.new(0, 26, 0, 12)
+hubTitle.TextXAlignment       = Enum.TextXAlignment.Left
+hubTitle.ZIndex               = 12
+hubTitle.Parent               = header
 
 local hubSub = Instance.new("TextLabel")
-hubSub.Text              = "Seleccioná un Script!"
-hubSub.Font              = Enum.Font.Gotham
-hubSub.TextSize          = 12
-hubSub.TextColor3        = Color3.fromRGB(95, 90, 130)
+hubSub.Text                 = "Seleccioná un Script!"
+hubSub.Font                 = Enum.Font.Gotham
+hubSub.TextSize             = 12
+hubSub.TextColor3           = Color3.fromRGB(95, 90, 130)
 hubSub.BackgroundTransparency = 1
-hubSub.Size              = UDim2.new(1, -80, 0, 16)
-hubSub.Position          = UDim2.new(0, 26, 0, 42)
-hubSub.TextXAlignment    = Enum.TextXAlignment.Left
-hubSub.ZIndex            = 12
-hubSub.Parent            = header
+hubSub.Size                 = UDim2.new(1, -80, 0, 16)
+hubSub.Position             = UDim2.new(0, 26, 0, 42)
+hubSub.TextXAlignment       = Enum.TextXAlignment.Left
+hubSub.ZIndex               = 12
+hubSub.Parent               = header
 
 local closeBtn = Instance.new("TextButton")
 closeBtn.Text             = "X"
@@ -170,11 +155,12 @@ closeBtn.BorderSizePixel  = 0
 closeBtn.ZIndex           = 13
 closeBtn.Parent           = header
 
-local closeBtnCorner = Instance.new("UICorner")
-closeBtnCorner.CornerRadius = UDim.new(0, 8)
-closeBtnCorner.Parent = closeBtn
+local cbc = Instance.new("UICorner")
+cbc.CornerRadius = UDim.new(0, 8)
+cbc.Parent = closeBtn
 
 closeBtn.MouseButton1Click:Connect(closeHub)
+
 closeBtn.MouseEnter:Connect(function()
     TweenService:Create(closeBtn, TweenInfo.new(0.12), {
         BackgroundColor3 = Color3.fromRGB(170, 40, 55),
@@ -197,7 +183,7 @@ sep.ZIndex           = 11
 sep.Parent           = card
 
 local listFrame = Instance.new("ScrollingFrame")
-listFrame.Size                   = UDim2.new(1, -16, 1, -(HEADER_H + 10 + PADDING_B))
+listFrame.Size                   = UDim2.new(1, -16, 1, -(HEADER_H + 26))
 listFrame.Position               = UDim2.new(0, 8, 0, HEADER_H + 10)
 listFrame.BackgroundTransparency = 1
 listFrame.BorderSizePixel        = 0
@@ -213,7 +199,6 @@ layout.SortOrder = Enum.SortOrder.LayoutOrder
 layout.Parent    = listFrame
 
 for i, mod in ipairs(MODULES) do
-
     local row = Instance.new("TextButton")
     row.Name             = "Row_" .. i
     row.Size             = UDim2.new(1, 0, 0, ROW_H)
@@ -224,27 +209,27 @@ for i, mod in ipairs(MODULES) do
     row.ZIndex           = 12
     row.Parent           = listFrame
 
-    local rowCorner = Instance.new("UICorner")
-    rowCorner.CornerRadius = UDim.new(0, 10)
-    rowCorner.Parent = row
+    local rc = Instance.new("UICorner")
+    rc.CornerRadius = UDim.new(0, 10)
+    rc.Parent = row
 
-    local rowStroke = Instance.new("UIStroke")
-    rowStroke.Color     = Color3.fromRGB(40, 38, 65)
-    rowStroke.Thickness = 1
-    rowStroke.Parent    = row
+    local rs = Instance.new("UIStroke")
+    rs.Color     = Color3.fromRGB(40, 38, 65)
+    rs.Thickness = 1
+    rs.Parent    = row
 
     local numLabel = Instance.new("TextLabel")
-    numLabel.Text              = string.format("%02d", i)
-    numLabel.Font              = Enum.Font.GothamBold
-    numLabel.TextSize          = 12
-    numLabel.TextColor3        = Color3.fromRGB(80, 70, 130)
+    numLabel.Text                 = string.format("%02d", i)
+    numLabel.Font                 = Enum.Font.GothamBold
+    numLabel.TextSize             = 12
+    numLabel.TextColor3           = Color3.fromRGB(80, 70, 130)
     numLabel.BackgroundTransparency = 1
-    numLabel.Size              = UDim2.new(0, 28, 1, 0)
-    numLabel.Position          = UDim2.new(0, 12, 0, 0)
-    numLabel.TextXAlignment    = Enum.TextXAlignment.Left
-    numLabel.TextYAlignment    = Enum.TextYAlignment.Center
-    numLabel.ZIndex            = 13
-    numLabel.Parent            = row
+    numLabel.Size                 = UDim2.new(0, 28, 1, 0)
+    numLabel.Position             = UDim2.new(0, 12, 0, 0)
+    numLabel.TextXAlignment       = Enum.TextXAlignment.Left
+    numLabel.TextYAlignment       = Enum.TextYAlignment.Center
+    numLabel.ZIndex               = 13
+    numLabel.Parent               = row
 
     local vSep = Instance.new("Frame")
     vSep.Size             = UDim2.new(0, 1, 0, 34)
@@ -255,120 +240,67 @@ for i, mod in ipairs(MODULES) do
     vSep.Parent           = row
 
     local nameLabel = Instance.new("TextLabel")
-    nameLabel.Text             = mod.name
-    nameLabel.Font             = Enum.Font.GothamBold
-    nameLabel.TextSize         = 15
-    nameLabel.TextColor3       = Color3.fromRGB(225, 220, 255)
+    nameLabel.Text                 = mod.name
+    nameLabel.Font                 = Enum.Font.GothamBold
+    nameLabel.TextSize             = 15
+    nameLabel.TextColor3           = Color3.fromRGB(225, 220, 255)
     nameLabel.BackgroundTransparency = 1
-    nameLabel.Size             = UDim2.new(1, -120, 0, 22)
-    nameLabel.Position         = UDim2.new(0, 54, 0, 14)
-    nameLabel.TextXAlignment   = Enum.TextXAlignment.Left
-    nameLabel.ZIndex           = 13
-    nameLabel.Parent           = row
+    nameLabel.Size                 = UDim2.new(1, -120, 0, 22)
+    nameLabel.Position             = UDim2.new(0, 54, 0, 14)
+    nameLabel.TextXAlignment       = Enum.TextXAlignment.Left
+    nameLabel.ZIndex               = 13
+    nameLabel.Parent               = row
 
     local descLabel = Instance.new("TextLabel")
-    descLabel.Text             = mod.desc
-    descLabel.Font             = Enum.Font.Gotham
-    descLabel.TextSize         = 12
-    descLabel.TextColor3       = Color3.fromRGB(85, 80, 125)
+    descLabel.Text                 = mod.desc
+    descLabel.Font                 = Enum.Font.Gotham
+    descLabel.TextSize             = 12
+    descLabel.TextColor3           = Color3.fromRGB(85, 80, 125)
     descLabel.BackgroundTransparency = 1
-    descLabel.Size             = UDim2.new(1, -120, 0, 16)
-    descLabel.Position         = UDim2.new(0, 54, 0, 42)
-    descLabel.TextXAlignment   = Enum.TextXAlignment.Left
-    descLabel.ZIndex           = 13
-    descLabel.Parent           = row
+    descLabel.Size                 = UDim2.new(1, -120, 0, 16)
+    descLabel.Position             = UDim2.new(0, 54, 0, 42)
+    descLabel.TextXAlignment       = Enum.TextXAlignment.Left
+    descLabel.ZIndex               = 13
+    descLabel.Parent               = row
 
     local arrow = Instance.new("TextLabel")
-    arrow.Text             = "›"
-    arrow.Font             = Enum.Font.GothamBold
-    arrow.TextSize         = 22
-    arrow.TextColor3       = Color3.fromRGB(70, 65, 110)
+    arrow.Text                 = "›"
+    arrow.Font                 = Enum.Font.GothamBold
+    arrow.TextSize             = 22
+    arrow.TextColor3           = Color3.fromRGB(70, 65, 110)
     arrow.BackgroundTransparency = 1
-    arrow.Size             = UDim2.new(0, 24, 1, 0)
-    arrow.Position         = UDim2.new(1, -34, 0, 0)
-    arrow.TextXAlignment   = Enum.TextXAlignment.Center
-    arrow.TextYAlignment   = Enum.TextYAlignment.Center
-    arrow.ZIndex           = 13
-    arrow.Parent           = row
+    arrow.Size                 = UDim2.new(0, 24, 1, 0)
+    arrow.Position             = UDim2.new(1, -34, 0, 0)
+    arrow.TextXAlignment       = Enum.TextXAlignment.Center
+    arrow.TextYAlignment       = Enum.TextYAlignment.Center
+    arrow.ZIndex               = 13
+    arrow.Parent               = row
 
     row.MouseEnter:Connect(function()
-        TweenService:Create(row, TweenInfo.new(0.14), {
-            BackgroundColor3 = Color3.fromRGB(30, 28, 48)
-        }):Play()
-        TweenService:Create(rowStroke, TweenInfo.new(0.14), {
-            Color = Color3.fromRGB(100, 85, 200)
-        }):Play()
-        TweenService:Create(arrow, TweenInfo.new(0.14), {
-            TextColor3 = Color3.fromRGB(140, 120, 240)
-        }):Play()
+        TweenService:Create(row, TweenInfo.new(0.14), { BackgroundColor3 = Color3.fromRGB(30, 28, 48) }):Play()
+        TweenService:Create(rs,  TweenInfo.new(0.14), { Color = Color3.fromRGB(100, 85, 200) }):Play()
+        TweenService:Create(arrow, TweenInfo.new(0.14), { TextColor3 = Color3.fromRGB(140, 120, 240) }):Play()
     end)
     row.MouseLeave:Connect(function()
-        TweenService:Create(row, TweenInfo.new(0.14), {
-            BackgroundColor3 = Color3.fromRGB(22, 21, 34)
-        }):Play()
-        TweenService:Create(rowStroke, TweenInfo.new(0.14), {
-            Color = Color3.fromRGB(40, 38, 65)
-        }):Play()
-        TweenService:Create(arrow, TweenInfo.new(0.14), {
-            TextColor3 = Color3.fromRGB(70, 65, 110)
-        }):Play()
+        TweenService:Create(row, TweenInfo.new(0.14), { BackgroundColor3 = Color3.fromRGB(22, 21, 34) }):Play()
+        TweenService:Create(rs,  TweenInfo.new(0.14), { Color = Color3.fromRGB(40, 38, 65) }):Play()
+        TweenService:Create(arrow, TweenInfo.new(0.14), { TextColor3 = Color3.fromRGB(70, 65, 110) }):Play()
     end)
 
     local clicked = false
     row.MouseButton1Click:Connect(function()
         if clicked or closing then return end
         clicked = true
-
-        TweenService:Create(row, TweenInfo.new(0.1), {
-            BackgroundColor3 = Color3.fromRGB(40, 35, 70)
-        }):Play()
-        TweenService:Create(rowStroke, TweenInfo.new(0.1), {
-            Color = Color3.fromRGB(130, 110, 255)
-        }):Play()
-
-        if PAID_FILES[mod.file] then
-            -- Feedback visual mientras verifica
-            hubSub.Text      = "Verificando acceso..."
-            hubSub.TextColor3 = Color3.fromRGB(160, 140, 220)
-
-            task.spawn(function()
-                local allowed = isWhitelisted()
-
-                -- Restaurar subtítulo
-                hubSub.Text       = "Seleccioná un Script!"
-                hubSub.TextColor3 = Color3.fromRGB(95, 90, 130)
-
-                if not allowed then
-                    clicked = false
-                    TweenService:Create(row, TweenInfo.new(0.14), {
-                        BackgroundColor3 = Color3.fromRGB(22, 21, 34)
-                    }):Play()
-                    TweenService:Create(rowStroke, TweenInfo.new(0.14), {
-                        Color = Color3.fromRGB(40, 38, 65)
-                    }):Play()
-                    StarterGui:SetCore("SendNotification", {
-                        Title    = "Young0x Hub",
-                        Text     = "No estás en la WhiteList.",
-                        Duration = 5,
-                    })
-                    return
-                end
-
-                pendingFile = mod.file
-                task.wait(0.12)
-                closeHub()
-            end)
-        else
-            pendingFile = mod.file
-            task.wait(0.12)
-            closeHub()
-        end
+        TweenService:Create(row, TweenInfo.new(0.1), { BackgroundColor3 = Color3.fromRGB(40, 35, 70) }):Play()
+        TweenService:Create(rs,  TweenInfo.new(0.1), { Color = Color3.fromRGB(130, 110, 255) }):Play()
+        pendingFile = mod.file
+        task.wait(0.12)
+        closeHub()
     end)
 end
 
-local targetPos = UDim2.new(0.5, -CARD_W / 2, 0.5, -CARD_H / 2)
 task.wait(0.05)
 TweenService:Create(card,
     TweenInfo.new(0.44, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
-    { Position = targetPos }
+    { Position = UDim2.new(0.5, -CARD_W / 2, 0.5, -CARD_H / 2) }
 ):Play()
