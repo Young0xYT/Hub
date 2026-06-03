@@ -1,36 +1,34 @@
--- Young0x Hub — Loader (UI horizontal mobile/PC)
+-- Young0x Hub — Loader (UI horizontal compacta con scroll interno)
 
--- Config
 local RAW = "https://raw.githubusercontent.com/Young0xYT/Hub/main/modules/"
 
 local MODULES = {
     { name = "Fast Glitch 90%",  file = "fg90.lua",        desc = "Simple Fast Glitch", status = "ready" },
-    { name = "Fast Glitch 100%", file = "fg100.lua",       desc = "Fast Glitch 100%",   status = "soon"  },
-    { name = "Fast Farm",        file = "fastfarm.lua",    desc = "Automatización",     status = "soon"  },
-    { name = "Auto Rebirth",     file = "autorebirth.lua", desc = "Rebirth automático", status = "soon"  },
-    { name = "Auto Kill",        file = "autokill.lua",    desc = "Kill automático",    status = "soon"  },
-    { name = "Anti Lag",         file = "antilag.lua",     desc = "Reducción de lag",   status = "soon"  },
-    { name = "Anti AFK",         file = "antiafk.lua",     desc = "Anti AFK",           status = "soon"  },
+    { name = "Fast Glitch 100%", file = "fg100.lua",       desc = "En desarrollo",      status = "soon"  },
+    { name = "Fast Farm",        file = "fastfarm.lua",    desc = "En desarrollo",      status = "soon"  },
+    { name = "Auto Rebirth",     file = "autorebirth.lua", desc = "En desarrollo",      status = "soon"  },
+    { name = "Auto Kill",        file = "autokill.lua",    desc = "En desarrollo",      status = "soon"  },
+    { name = "Anti Lag",         file = "antilag.lua",     desc = "En desarrollo",      status = "soon"  },
+    { name = "Anti AFK",         file = "antiafk.lua",     desc = "En desarrollo",      status = "soon"  },
 }
 
--- Services
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
-if playerGui:FindFirstChild("HubGui") then
-    playerGui.HubGui:Destroy()
+local old = playerGui:FindFirstChild("HubGui")
+if old then
+    old:Destroy()
 end
 
--- Layout (pensado para PC + Cel)
-local CARD_W = 620
-local ROW_H = 66
+local CARD_W = 760
+local CARD_H = 470
+local HEADER_H = 76
+local LIST_TOP = HEADER_H + 8
+local LIST_BOTTOM_PADDING = 10
+local ROW_H = 74
 local ROW_GAP = 8
-local HEADER_H = 60
-local PADDING_B = 10
-local ROWS = math.max(#MODULES, 2)
-local CARD_H = HEADER_H + PADDING_B + (ROWS * ROW_H) + math.max(ROWS - 1, 0) * ROW_GAP
 
 local gui = Instance.new("ScreenGui")
 gui.Name = "HubGui"
@@ -41,9 +39,7 @@ gui.Parent = playerGui
 
 local pendingFile = nil
 local closing = false
-local card
 
--- Modules
 local function moduleReady(mod)
     return mod.status == "ready"
 end
@@ -57,14 +53,130 @@ local function runModule(file)
     end
 end
 
+local card = Instance.new("Frame")
+card.Name = "Card"
+card.Size = UDim2.new(0, CARD_W, 0, CARD_H)
+card.Position = UDim2.new(0.5, -CARD_W / 2, 0.5, -CARD_H / 2)
+card.BackgroundColor3 = Color3.fromRGB(7, 11, 19)
+card.BackgroundTransparency = 0.08
+card.BorderSizePixel = 0
+card.Active = true
+card.Draggable = false
+card.ZIndex = 10
+card.Parent = gui
+
+local cardCorner = Instance.new("UICorner")
+cardCorner.CornerRadius = UDim.new(0, 16)
+cardCorner.Parent = card
+
+local cardStroke = Instance.new("UIStroke")
+cardStroke.Color = Color3.fromRGB(0, 180, 255)
+cardStroke.Thickness = 1.2
+cardStroke.Transparency = 0.05
+cardStroke.Parent = card
+
+local header = Instance.new("Frame")
+header.Size = UDim2.new(1, 0, 0, HEADER_H)
+header.BackgroundColor3 = Color3.fromRGB(9, 14, 24)
+header.BackgroundTransparency = 0.08
+header.BorderSizePixel = 0
+header.ZIndex = 11
+header.Parent = card
+
+local headerCorner = Instance.new("UICorner")
+headerCorner.CornerRadius = UDim.new(0, 16)
+headerCorner.Parent = header
+
+local headerPatch = Instance.new("Frame")
+headerPatch.Size = UDim2.new(1, 0, 0, 16)
+headerPatch.Position = UDim2.new(0, 0, 1, -16)
+headerPatch.BackgroundColor3 = header.BackgroundColor3
+headerPatch.BackgroundTransparency = header.BackgroundTransparency
+headerPatch.BorderSizePixel = 0
+headerPatch.ZIndex = 11
+headerPatch.Parent = header
+
+local accent = Instance.new("Frame")
+accent.Size = UDim2.new(0, 5, 0, 44)
+accent.Position = UDim2.new(0, 16, 0, 16)
+accent.BackgroundColor3 = Color3.fromRGB(0, 190, 255)
+accent.BorderSizePixel = 0
+accent.ZIndex = 12
+accent.Parent = header
+
+local accentCorner = Instance.new("UICorner")
+accentCorner.CornerRadius = UDim.new(0, 3)
+accentCorner.Parent = accent
+
+local title = Instance.new("TextLabel")
+title.Text = "Young0x Hub"
+title.Font = Enum.Font.GothamBold
+title.TextSize = 18
+title.TextColor3 = Color3.fromRGB(240, 244, 255)
+title.BackgroundTransparency = 1
+title.Size = UDim2.new(0, 250, 0, 22)
+title.Position = UDim2.new(0, 34, 0, 14)
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.ZIndex = 12
+title.Parent = header
+
+local sub = Instance.new("TextLabel")
+sub.Text = "Seleccioná un Script"
+sub.Font = Enum.Font.Gotham
+sub.TextSize = 12
+sub.TextColor3 = Color3.fromRGB(145, 155, 185)
+sub.BackgroundTransparency = 1
+sub.Size = UDim2.new(0, 250, 0, 16)
+sub.Position = UDim2.new(0, 34, 0, 38)
+sub.TextXAlignment = Enum.TextXAlignment.Left
+sub.ZIndex = 12
+sub.Parent = header
+
+local closeBtn = Instance.new("TextButton")
+closeBtn.Text = "X"
+closeBtn.Font = Enum.Font.GothamBold
+closeBtn.TextSize = 16
+closeBtn.TextColor3 = Color3.fromRGB(230, 240, 255)
+closeBtn.BackgroundColor3 = Color3.fromRGB(24, 32, 48)
+closeBtn.AutoButtonColor = false
+closeBtn.Size = UDim2.new(0, 28, 0, 28)
+closeBtn.Position = UDim2.new(1, -40, 0, 24)
+closeBtn.BorderSizePixel = 0
+closeBtn.ZIndex = 13
+closeBtn.Parent = header
+
+local closeCorner = Instance.new("UICorner")
+closeCorner.CornerRadius = UDim.new(1, 0)
+closeCorner.Parent = closeBtn
+
+local listFrame = Instance.new("ScrollingFrame")
+listFrame.Name = "List"
+listFrame.Size = UDim2.new(1, -18, 1, -(LIST_TOP + LIST_BOTTOM_PADDING))
+listFrame.Position = UDim2.new(0, 9, 0, LIST_TOP)
+listFrame.BackgroundTransparency = 1
+listFrame.BorderSizePixel = 0
+listFrame.ScrollBarThickness = 4
+listFrame.ScrollBarImageColor3 = Color3.fromRGB(0, 190, 255)
+listFrame.VerticalScrollBarInset = Enum.ScrollBarInset.Always
+listFrame.HorizontalScrollBarInset = Enum.ScrollBarInset.None
+listFrame.ScrollingDirection = Enum.ScrollingDirection.Y
+listFrame.CanvasSize = UDim2.new(0, 0, 0, (#MODULES * ROW_H) + ((#MODULES - 1) * ROW_GAP))
+listFrame.ZIndex = 11
+listFrame.Parent = card
+
+local listLayout = Instance.new("UIListLayout")
+listLayout.Padding = UDim.new(0, ROW_GAP)
+listLayout.SortOrder = Enum.SortOrder.LayoutOrder
+listLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+listLayout.Parent = listFrame
+
 local function closeHub()
     if closing then return end
     closing = true
-
     local tweenOut = TweenService:Create(
         card,
-        TweenInfo.new(0.32, Enum.EasingStyle.Back, Enum.EasingDirection.In),
-        { Position = UDim2.new(0.5, -CARD_W / 2, 1.2, 0) }
+        TweenInfo.new(0.28, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
+        { Position = UDim2.new(0.5, -CARD_W / 2, 1.1, 0) }
     )
     tweenOut:Play()
     tweenOut.Completed:Connect(function()
@@ -75,183 +187,23 @@ local function closeHub()
     end)
 end
 
--- Card
-card = Instance.new("Frame")
-card.Name = "Card"
-card.Size = UDim2.new(0, CARD_W, 0, CARD_H)
-card.Position = UDim2.new(0.5, -CARD_W / 2, -0.2, 0)
-card.BackgroundColor3 = Color3.fromRGB(6, 10, 18)
-card.BackgroundTransparency = 0.1
-card.BorderSizePixel = 0
-card.Active = true
-card.Draggable = true
-card.ZIndex = 10
-card.Parent = gui
-
-local cardCorner = Instance.new("UICorner")
-cardCorner.CornerRadius = UDim.new(0, 14)
-cardCorner.Parent = card
-
-local cardStroke = Instance.new("UIStroke")
-cardStroke.Color = Color3.fromRGB(0, 180, 255)
-cardStroke.Thickness = 1.2
-cardStroke.Parent = card
-
-local glow = Instance.new("ImageLabel")
-glow.BackgroundTransparency = 1
-glow.Image = "rbxassetid://5028857084"
-glow.ImageColor3 = Color3.fromRGB(0, 190, 255)
-glow.ImageTransparency = 0.7
-glow.ScaleType = Enum.ScaleType.Slice
-glow.SliceCenter = Rect.new(24, 24, 276, 276)
-glow.Size = UDim2.new(1, 16, 1, 16)
-glow.Position = UDim2.new(0, -8, 0, -8)
-glow.ZIndex = 9
-glow.Parent = card
-
--- Header
-local header = Instance.new("Frame")
-header.Size = UDim2.new(1, 0, 0, HEADER_H)
-header.Position = UDim2.new(0, 0, 0, 0)
-header.BackgroundColor3 = Color3.fromRGB(8, 14, 26)
-header.BackgroundTransparency = 0.1
-header.BorderSizePixel = 0
-header.ZIndex = 11
-header.Parent = card
-
-local headerCorner = Instance.new("UICorner")
-headerCorner.CornerRadius = UDim.new(0, 14)
-headerCorner.Parent = header
-
-local headerPatch = Instance.new("Frame")
-headerPatch.Size = UDim2.new(1, 0, 0, 14)
-headerPatch.Position = UDim2.new(0, 0, 1, -14)
-headerPatch.BackgroundColor3 = header.BackgroundColor3
-headerPatch.BackgroundTransparency = header.BackgroundTransparency
-headerPatch.BorderSizePixel = 0
-headerPatch.ZIndex = 11
-headerPatch.Parent = header
-
-local accent = Instance.new("Frame")
-accent.Size = UDim2.new(0, 5, 0, HEADER_H - 20)
-accent.Position = UDim2.new(0, 14, 0.5, -(HEADER_H - 20)/2)
-accent.BackgroundColor3 = Color3.fromRGB(0, 200, 255)
-accent.BorderSizePixel = 0
-accent.ZIndex = 12
-accent.Parent = header
-
-local accentCorner = Instance.new("UICorner")
-accentCorner.CornerRadius = UDim.new(0, 3)
-accentCorner.Parent = accent
-
-local hubTitle = Instance.new("TextLabel")
-hubTitle.Text = "Young0x Hub"
-hubTitle.Font = Enum.Font.GothamBold
-hubTitle.TextSize = 18
-hubTitle.TextColor3 = Color3.fromRGB(240, 244, 255)
-hubTitle.BackgroundTransparency = 1
-hubTitle.Size = UDim2.new(0.6, 0, 0, 22)
-hubTitle.Position = UDim2.new(0, 30, 0, 8)
-hubTitle.TextXAlignment = Enum.TextXAlignment.Left
-hubTitle.ZIndex = 12
-hubTitle.Parent = header
-
-local hubSub = Instance.new("TextLabel")
-hubSub.Text = "Seleccioná un Script"
-hubSub.Font = Enum.Font.Gotham
-hubSub.TextSize = 12
-hubSub.TextColor3 = Color3.fromRGB(150, 160, 190)
-hubSub.BackgroundTransparency = 1
-hubSub.Size = UDim2.new(0.6, 0, 0, 16)
-hubSub.Position = UDim2.new(0, 30, 0, 32)
-hubSub.TextXAlignment = Enum.TextXAlignment.Left
-hubSub.ZIndex = 12
-hubSub.Parent = header
-
--- Botón cerrar
-local closeBtn = Instance.new("TextButton")
-closeBtn.Text = "X"
-closeBtn.Font = Enum.Font.GothamBold
-closeBtn.TextSize = 16
-closeBtn.TextColor3 = Color3.fromRGB(230, 240, 255)
-closeBtn.BackgroundColor3 = Color3.fromRGB(24, 32, 48)
-closeBtn.AutoButtonColor = false
-closeBtn.Size = UDim2.new(0, 26, 0, 26)
-closeBtn.Position = UDim2.new(1, -34, 0, 17)
-closeBtn.BorderSizePixel = 0
-closeBtn.ZIndex = 13
-closeBtn.Parent = header
-
-local closeBtnCorner = Instance.new("UICorner")
-closeBtnCorner.CornerRadius = UDim.new(1, 0)
-closeBtnCorner.Parent = closeBtn
-
 closeBtn.MouseButton1Click:Connect(closeHub)
 
-closeBtn.MouseEnter:Connect(function()
-    TweenService:Create(closeBtn, TweenInfo.new(0.12), {
-        BackgroundColor3 = Color3.fromRGB(220, 60, 80),
-        TextColor3 = Color3.fromRGB(255, 255, 255)
-    }):Play()
-end)
-
-closeBtn.MouseLeave:Connect(function()
-    TweenService:Create(closeBtn, TweenInfo.new(0.12), {
-        BackgroundColor3 = Color3.fromRGB(24, 32, 48),
-        TextColor3 = Color3.fromRGB(230, 240, 255)
-    }):Play()
-end)
-
--- Separador
-local sep = Instance.new("Frame")
-sep.Size = UDim2.new(1, -24, 0, 1)
-sep.Position = UDim2.new(0, 12, 0, HEADER_H)
-sep.BackgroundColor3 = Color3.fromRGB(30, 40, 60)
-sep.BorderSizePixel = 0
-sep.BackgroundTransparency = 0.25
-sep.ZIndex = 11
-sep.Parent = card
-
--- Lista (scroll PC + Cel)
-local listFrame = Instance.new("ScrollingFrame")
-listFrame.Size = UDim2.new(1, -18, 1, -(HEADER_H + 10 + PADDING_B))
-listFrame.Position = UDim2.new(0, 9, 0, HEADER_H + 10)
-listFrame.BackgroundTransparency = 1
-listFrame.BorderSizePixel = 0
-listFrame.ScrollBarThickness = 4
-listFrame.ScrollBarImageColor3 = Color3.fromRGB(0, 190, 255)
-listFrame.TopImage = "rbxasset://textures/ui/Scroll/scroll-middle.png"
-listFrame.BottomImage = listFrame.TopImage
-listFrame.MidImage = listFrame.TopImage
-listFrame.CanvasSize = UDim2.new(0, 0, 0, (ROWS * ROW_H) + math.max(ROWS - 1, 0) * ROW_GAP)
-listFrame.ScrollingDirection = Enum.ScrollingDirection.Y
-listFrame.VerticalScrollBarInset = Enum.ScrollBarInset.Always
-listFrame.HorizontalScrollBarInset = Enum.ScrollBarInset.None
-listFrame.ZIndex = 11
-listFrame.Parent = card
-
-local layout = Instance.new("UIListLayout")
-layout.Padding = UDim.new(0, ROW_GAP)
-layout.SortOrder = Enum.SortOrder.LayoutOrder
-layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-layout.Parent = listFrame
-
--- Filas
 for i, mod in ipairs(MODULES) do
     local row = Instance.new("TextButton")
     row.Name = "Row_" .. i
-    row.Size = UDim2.new(0.96, 0, 0, ROW_H)
+    row.Size = UDim2.new(0.98, 0, 0, ROW_H)
     row.BackgroundColor3 = Color3.fromRGB(12, 18, 30)
-    row.BackgroundTransparency = 0.1
+    row.BackgroundTransparency = 0.08
     row.BorderSizePixel = 0
     row.Text = ""
     row.LayoutOrder = i
-    row.ZIndex = 12
     row.AutoButtonColor = false
+    row.ZIndex = 12
     row.Parent = listFrame
 
     local rowCorner = Instance.new("UICorner")
-    rowCorner.CornerRadius = UDim.new(0, 10)
+    rowCorner.CornerRadius = UDim.new(0, 12)
     rowCorner.Parent = row
 
     local rowStroke = Instance.new("UIStroke")
@@ -287,8 +239,8 @@ for i, mod in ipairs(MODULES) do
     state.Font = Enum.Font.GothamBold
     state.TextSize = 11
     state.BackgroundTransparency = 0
-    state.Size = UDim2.new(0, 88, 0, 22)
-    state.Position = UDim2.new(1, -130, 0, 11)
+    state.Size = UDim2.new(0, 108, 0, 22)
+    state.Position = UDim2.new(1, -154, 0, 12)
     state.BorderSizePixel = 0
     state.ZIndex = 13
     state.Parent = row
@@ -314,7 +266,7 @@ for i, mod in ipairs(MODULES) do
     arrow.TextColor3 = moduleReady(mod) and Color3.fromRGB(0, 200, 255) or Color3.fromRGB(90, 100, 130)
     arrow.BackgroundTransparency = 1
     arrow.Size = UDim2.new(0, 24, 1, 0)
-    arrow.Position = UDim2.new(1, -32, 0, 0)
+    arrow.Position = UDim2.new(1, -36, 0, 0)
     arrow.TextXAlignment = Enum.TextXAlignment.Center
     arrow.TextYAlignment = Enum.TextYAlignment.Center
     arrow.ZIndex = 13
@@ -326,14 +278,12 @@ for i, mod in ipairs(MODULES) do
         row.MouseButton1Click:Connect(function()
             if clicked or closing then return end
             clicked = true
-
             TweenService:Create(row, TweenInfo.new(0.1), {
                 BackgroundColor3 = Color3.fromRGB(20, 30, 52),
             }):Play()
             TweenService:Create(rowStroke, TweenInfo.new(0.1), {
                 Color = Color3.fromRGB(0, 200, 255),
             }):Play()
-
             pendingFile = mod.file
             task.wait(0.12)
             closeHub()
@@ -356,15 +306,11 @@ for i, mod in ipairs(MODULES) do
                 Color = Color3.fromRGB(22, 32, 52),
             }):Play()
         end)
-    else
-        row.AutoButtonColor = false
     end
 end
 
-local targetPos = UDim2.new(0.5, -CARD_W / 2, 0.16, 0)
-
 TweenService:Create(
     card,
-    TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
-    { Position = targetPos }
+    TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+    { Position = UDim2.new(0.5, -CARD_W / 2, 0.5, -CARD_H / 2) }
 ):Play()
