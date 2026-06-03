@@ -1,4 +1,4 @@
--- Young0x Hub — Loader
+-- Young0x Hub — Loader (UI horizontal mobile/PC)
 
 -- Config
 local RAW = "https://raw.githubusercontent.com/Young0xYT/Hub/main/modules/"
@@ -23,12 +23,12 @@ if playerGui:FindFirstChild("HubGui") then
     playerGui.HubGui:Destroy()
 end
 
--- Layout
-local CARD_W = 820      -- más horizontal
-local ROW_H = 70
-local ROW_GAP = 10
-local HEADER_H = 64
-local PADDING_B = 14
+-- Layout (pensado para PC + Cel)
+local CARD_W = 620
+local ROW_H = 66
+local ROW_GAP = 8
+local HEADER_H = 60
+local PADDING_B = 10
 local ROWS = math.max(#MODULES, 2)
 local CARD_H = HEADER_H + PADDING_B + (ROWS * ROW_H) + math.max(ROWS - 1, 0) * ROW_GAP
 
@@ -80,8 +80,11 @@ card = Instance.new("Frame")
 card.Name = "Card"
 card.Size = UDim2.new(0, CARD_W, 0, CARD_H)
 card.Position = UDim2.new(0.5, -CARD_W / 2, -0.2, 0)
-card.BackgroundColor3 = Color3.fromRGB(6, 10, 18)  -- negro azulado
+card.BackgroundColor3 = Color3.fromRGB(6, 10, 18)
+card.BackgroundTransparency = 0.1
 card.BorderSizePixel = 0
+card.Active = true
+card.Draggable = true
 card.ZIndex = 10
 card.Parent = gui
 
@@ -90,20 +93,19 @@ cardCorner.CornerRadius = UDim.new(0, 14)
 cardCorner.Parent = card
 
 local cardStroke = Instance.new("UIStroke")
-cardStroke.Color = Color3.fromRGB(0, 180, 255)     -- celeste neón
-cardStroke.Thickness = 1.4
+cardStroke.Color = Color3.fromRGB(0, 180, 255)
+cardStroke.Thickness = 1.2
 cardStroke.Parent = card
 
--- Glow simple
 local glow = Instance.new("ImageLabel")
 glow.BackgroundTransparency = 1
-glow.Image = "rbxassetid://5028857084" -- blur suave
+glow.Image = "rbxassetid://5028857084"
 glow.ImageColor3 = Color3.fromRGB(0, 190, 255)
 glow.ImageTransparency = 0.7
 glow.ScaleType = Enum.ScaleType.Slice
 glow.SliceCenter = Rect.new(24, 24, 276, 276)
-glow.Size = UDim2.new(1, 20, 1, 20)
-glow.Position = UDim2.new(0, -10, 0, -10)
+glow.Size = UDim2.new(1, 16, 1, 16)
+glow.Position = UDim2.new(0, -8, 0, -8)
 glow.ZIndex = 9
 glow.Parent = card
 
@@ -112,6 +114,7 @@ local header = Instance.new("Frame")
 header.Size = UDim2.new(1, 0, 0, HEADER_H)
 header.Position = UDim2.new(0, 0, 0, 0)
 header.BackgroundColor3 = Color3.fromRGB(8, 14, 26)
+header.BackgroundTransparency = 0.1
 header.BorderSizePixel = 0
 header.ZIndex = 11
 header.Parent = card
@@ -124,14 +127,14 @@ local headerPatch = Instance.new("Frame")
 headerPatch.Size = UDim2.new(1, 0, 0, 14)
 headerPatch.Position = UDim2.new(0, 0, 1, -14)
 headerPatch.BackgroundColor3 = header.BackgroundColor3
+headerPatch.BackgroundTransparency = header.BackgroundTransparency
 headerPatch.BorderSizePixel = 0
 headerPatch.ZIndex = 11
 headerPatch.Parent = header
 
--- Barra celeste izquierda
 local accent = Instance.new("Frame")
-accent.Size = UDim2.new(0, 6, 0, HEADER_H - 24)
-accent.Position = UDim2.new(0, 18, 0.5, -(HEADER_H - 24)/2)
+accent.Size = UDim2.new(0, 5, 0, HEADER_H - 20)
+accent.Position = UDim2.new(0, 14, 0.5, -(HEADER_H - 20)/2)
 accent.BackgroundColor3 = Color3.fromRGB(0, 200, 255)
 accent.BorderSizePixel = 0
 accent.ZIndex = 12
@@ -141,15 +144,14 @@ local accentCorner = Instance.new("UICorner")
 accentCorner.CornerRadius = UDim.new(0, 3)
 accentCorner.Parent = accent
 
--- Título
 local hubTitle = Instance.new("TextLabel")
 hubTitle.Text = "Young0x Hub"
 hubTitle.Font = Enum.Font.GothamBold
 hubTitle.TextSize = 18
 hubTitle.TextColor3 = Color3.fromRGB(240, 244, 255)
 hubTitle.BackgroundTransparency = 1
-hubTitle.Size = UDim2.new(0.5, 0, 0, 24)
-hubTitle.Position = UDim2.new(0, 40, 0, 10)
+hubTitle.Size = UDim2.new(0.6, 0, 0, 22)
+hubTitle.Position = UDim2.new(0, 30, 0, 8)
 hubTitle.TextXAlignment = Enum.TextXAlignment.Left
 hubTitle.ZIndex = 12
 hubTitle.Parent = header
@@ -160,39 +162,22 @@ hubSub.Font = Enum.Font.Gotham
 hubSub.TextSize = 12
 hubSub.TextColor3 = Color3.fromRGB(150, 160, 190)
 hubSub.BackgroundTransparency = 1
-hubSub.Size = UDim2.new(0.5, 0, 0, 18)
-hubSub.Position = UDim2.new(0, 40, 0, 34)
+hubSub.Size = UDim2.new(0.6, 0, 0, 16)
+hubSub.Position = UDim2.new(0, 30, 0, 32)
 hubSub.TextXAlignment = Enum.TextXAlignment.Left
 hubSub.ZIndex = 12
 hubSub.Parent = header
 
--- “Game” badge fake
-local gameTag = Instance.new("TextLabel")
-gameTag.Text = "Game"
-gameTag.Font = Enum.Font.GothamBold
-gameTag.TextSize = 12
-gameTag.TextColor3 = Color3.fromRGB(0, 210, 255)
-gameTag.BackgroundColor3 = Color3.fromRGB(12, 20, 32)
-gameTag.BackgroundTransparency = 0
-gameTag.Size = UDim2.new(0, 80, 0, 24)
-gameTag.Position = UDim2.new(1, -150, 0, 20)
-gameTag.BorderSizePixel = 0
-gameTag.ZIndex = 12
-gameTag.Parent = header
-
-local gameCorner = Instance.new("UICorner")
-gameCorner.CornerRadius = UDim.new(0, 12)
-gameCorner.Parent = gameTag
-
--- Cerrar
+-- Botón cerrar
 local closeBtn = Instance.new("TextButton")
 closeBtn.Text = "X"
 closeBtn.Font = Enum.Font.GothamBold
 closeBtn.TextSize = 16
 closeBtn.TextColor3 = Color3.fromRGB(230, 240, 255)
 closeBtn.BackgroundColor3 = Color3.fromRGB(24, 32, 48)
-closeBtn.Size = UDim2.new(0, 28, 0, 28)
-closeBtn.Position = UDim2.new(1, -40, 0, 18)
+closeBtn.AutoButtonColor = false
+closeBtn.Size = UDim2.new(0, 26, 0, 26)
+closeBtn.Position = UDim2.new(1, -34, 0, 17)
 closeBtn.BorderSizePixel = 0
 closeBtn.ZIndex = 13
 closeBtn.Parent = header
@@ -217,24 +202,31 @@ closeBtn.MouseLeave:Connect(function()
     }):Play()
 end)
 
--- Línea separadora
+-- Separador
 local sep = Instance.new("Frame")
-sep.Size = UDim2.new(1, -30, 0, 1)
-sep.Position = UDim2.new(0, 15, 0, HEADER_H)
+sep.Size = UDim2.new(1, -24, 0, 1)
+sep.Position = UDim2.new(0, 12, 0, HEADER_H)
 sep.BackgroundColor3 = Color3.fromRGB(30, 40, 60)
 sep.BorderSizePixel = 0
+sep.BackgroundTransparency = 0.25
 sep.ZIndex = 11
 sep.Parent = card
 
--- Lista
+-- Lista (scroll PC + Cel)
 local listFrame = Instance.new("ScrollingFrame")
-listFrame.Size = UDim2.new(1, -20, 1, -(HEADER_H + 12 + PADDING_B))
-listFrame.Position = UDim2.new(0, 10, 0, HEADER_H + 12)
+listFrame.Size = UDim2.new(1, -18, 1, -(HEADER_H + 10 + PADDING_B))
+listFrame.Position = UDim2.new(0, 9, 0, HEADER_H + 10)
 listFrame.BackgroundTransparency = 1
 listFrame.BorderSizePixel = 0
-listFrame.ScrollBarThickness = 3
+listFrame.ScrollBarThickness = 4
 listFrame.ScrollBarImageColor3 = Color3.fromRGB(0, 190, 255)
+listFrame.TopImage = "rbxasset://textures/ui/Scroll/scroll-middle.png"
+listFrame.BottomImage = listFrame.TopImage
+listFrame.MidImage = listFrame.TopImage
 listFrame.CanvasSize = UDim2.new(0, 0, 0, (ROWS * ROW_H) + math.max(ROWS - 1, 0) * ROW_GAP)
+listFrame.ScrollingDirection = Enum.ScrollingDirection.Y
+listFrame.VerticalScrollBarInset = Enum.ScrollBarInset.Always
+listFrame.HorizontalScrollBarInset = Enum.ScrollBarInset.None
 listFrame.ZIndex = 11
 listFrame.Parent = card
 
@@ -250,10 +242,12 @@ for i, mod in ipairs(MODULES) do
     row.Name = "Row_" .. i
     row.Size = UDim2.new(0.96, 0, 0, ROW_H)
     row.BackgroundColor3 = Color3.fromRGB(12, 18, 30)
+    row.BackgroundTransparency = 0.1
     row.BorderSizePixel = 0
     row.Text = ""
     row.LayoutOrder = i
     row.ZIndex = 12
+    row.AutoButtonColor = false
     row.Parent = listFrame
 
     local rowCorner = Instance.new("UICorner")
@@ -271,31 +265,30 @@ for i, mod in ipairs(MODULES) do
     nameLabel.TextSize = 15
     nameLabel.TextColor3 = moduleReady(mod) and Color3.fromRGB(235, 245, 255) or Color3.fromRGB(150, 150, 170)
     nameLabel.BackgroundTransparency = 1
-    nameLabel.Size = UDim2.new(0.7, 0, 0, 22)
-    nameLabel.Position = UDim2.new(0, 20, 0, 10)
+    nameLabel.Size = UDim2.new(0.7, 0, 0, 20)
+    nameLabel.Position = UDim2.new(0, 18, 0, 8)
     nameLabel.TextXAlignment = Enum.TextXAlignment.Left
     nameLabel.ZIndex = 13
     nameLabel.Parent = row
 
     local descLabel = Instance.new("TextLabel")
-    descLabel.Text = moduleReady(mod) and mod.desc or "Próximamente"
+    descLabel.Text = moduleReady(mod) and mod.desc or "En desarrollo"
     descLabel.Font = Enum.Font.Gotham
     descLabel.TextSize = 12
     descLabel.TextColor3 = Color3.fromRGB(130, 140, 170)
     descLabel.BackgroundTransparency = 1
     descLabel.Size = UDim2.new(0.7, 0, 0, 16)
-    descLabel.Position = UDim2.new(0, 20, 0, 38)
+    descLabel.Position = UDim2.new(0, 18, 0, 36)
     descLabel.TextXAlignment = Enum.TextXAlignment.Left
     descLabel.ZIndex = 13
     descLabel.Parent = row
 
-    -- Badge estado
     local state = Instance.new("TextLabel")
     state.Font = Enum.Font.GothamBold
     state.TextSize = 11
     state.BackgroundTransparency = 0
-    state.Size = UDim2.new(0, 80, 0, 22)
-    state.Position = UDim2.new(1, -120, 0, 12)
+    state.Size = UDim2.new(0, 88, 0, 22)
+    state.Position = UDim2.new(1, -130, 0, 11)
     state.BorderSizePixel = 0
     state.ZIndex = 13
     state.Parent = row
@@ -305,23 +298,23 @@ for i, mod in ipairs(MODULES) do
     stateCorner.Parent = state
 
     if moduleReady(mod) then
-        state.Text = "Listo"
-        state.TextColor3 = Color3.fromRGB(0, 240, 130)
-        state.BackgroundColor3 = Color3.fromRGB(10, 40, 24)
+        state.Text = "Activo."
+        state.TextColor3 = Color3.fromRGB(255, 255, 255)
+        state.BackgroundColor3 = Color3.fromRGB(10, 200, 90)
     else
-        state.Text = "Soon"
-        state.TextColor3 = Color3.fromRGB(255, 220, 60)
-        state.BackgroundColor3 = Color3.fromRGB(40, 32, 10)
+        state.Text = "En desarrollo"
+        state.TextColor3 = Color3.fromRGB(255, 230, 120)
+        state.BackgroundColor3 = Color3.fromRGB(50, 38, 10)
     end
 
     local arrow = Instance.new("TextLabel")
-    arrow.Text = moduleReady(mod) ? "›" : "•"
+    arrow.Text = moduleReady(mod) and "›" or "•"
     arrow.Font = Enum.Font.GothamBold
     arrow.TextSize = 20
     arrow.TextColor3 = moduleReady(mod) and Color3.fromRGB(0, 200, 255) or Color3.fromRGB(90, 100, 130)
     arrow.BackgroundTransparency = 1
     arrow.Size = UDim2.new(0, 24, 1, 0)
-    arrow.Position = UDim2.new(1, -40, 0, 0)
+    arrow.Position = UDim2.new(1, -32, 0, 0)
     arrow.TextXAlignment = Enum.TextXAlignment.Center
     arrow.TextYAlignment = Enum.TextYAlignment.Center
     arrow.ZIndex = 13
@@ -368,8 +361,7 @@ for i, mod in ipairs(MODULES) do
     end
 end
 
--- Animación
-local targetPos = UDim2.new(0.5, -CARD_W / 2, 0.15, 0)
+local targetPos = UDim2.new(0.5, -CARD_W / 2, 0.16, 0)
 
 TweenService:Create(
     card,
