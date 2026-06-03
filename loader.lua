@@ -1,10 +1,7 @@
--- Young0x Hub — Loader definitivo (compacto PC + Cel)
+-- Young0x Hub 
 
 local RAW = "https://raw.githubusercontent.com/Young0xYT/Hub/main/modules/"
 
--- CONFIGURÁ TUS SCRIPTS ACÁ:
--- status = "ready"  -> Activo, se puede ejecutar
--- status = "soon"   -> En desarrollo, bloqueado
 local MODULES = {
     { name = "Fast Glitch 90%",  file = "fg90.lua",        desc = "Simple Fast Glitch", status = "ready" },
     { name = "Fast Glitch 100%", file = "fg100.lua",       desc = "En desarrollo",      status = "soon"  },
@@ -26,9 +23,9 @@ if old then
     old:Destroy()
 end
 
--- Un poco más recortado verticalmente para que entre perfecto en cel
+-- Medidas del Hub (Puto el que lee)
 local CARD_W = 560      -- ancho
-local CARD_H = 320      -- alto (más bajo que antes)
+local CARD_H = 320      -- alto 
 local HEADER_H = 68
 local LIST_TOP = HEADER_H + 4
 local LIST_BOTTOM_PADDING = 6
