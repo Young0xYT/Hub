@@ -1,4 +1,4 @@
--- Young0x Hub — Loader (UI compacta para PC + Cel)
+-- Young0x Hub — Loader (compacto, mismo comportamiento)
 
 local RAW = "https://raw.githubusercontent.com/Young0xYT/Hub/main/modules/"
 
@@ -22,14 +22,14 @@ if old then
     old:Destroy()
 end
 
--- Más chico para que entre en cel y se vea completo
-local CARD_W = 620          -- antes 760
-local CARD_H = 380          -- antes 470
-local HEADER_H = 72
+-- Apenas más chico en todas las esquinas
+local CARD_W = 580
+local CARD_H = 352
+local HEADER_H = 70
 local LIST_TOP = HEADER_H + 6
 local LIST_BOTTOM_PADDING = 8
-local ROW_H = 64
-local ROW_GAP = 6
+local ROW_H = 60
+local ROW_GAP = 5
 
 local gui = Instance.new("ScreenGui")
 gui.Name = "HubGui"
@@ -98,7 +98,7 @@ headerPatch.ZIndex = 11
 headerPatch.Parent = header
 
 local accent = Instance.new("Frame")
-accent.Size = UDim2.new(0, 5, 0, 44)
+accent.Size = UDim2.new(0, 5, 0, 40)
 accent.Position = UDim2.new(0, 14, 0, 16)
 accent.BackgroundColor3 = Color3.fromRGB(0, 190, 255)
 accent.BorderSizePixel = 0
@@ -112,10 +112,10 @@ accentCorner.Parent = accent
 local title = Instance.new("TextLabel")
 title.Text = "Young0x Hub"
 title.Font = Enum.Font.GothamBold
-title.TextSize = 18
+title.TextSize = 17
 title.TextColor3 = Color3.fromRGB(240, 244, 255)
 title.BackgroundTransparency = 1
-title.Size = UDim2.new(0, 220, 0, 22)
+title.Size = UDim2.new(0, 220, 0, 20)
 title.Position = UDim2.new(0, 30, 0, 14)
 title.TextXAlignment = Enum.TextXAlignment.Left
 title.ZIndex = 12
@@ -124,11 +124,11 @@ title.Parent = header
 local sub = Instance.new("TextLabel")
 sub.Text = "Seleccioná un Script"
 sub.Font = Enum.Font.Gotham
-sub.TextSize = 12
+sub.TextSize = 11
 sub.TextColor3 = Color3.fromRGB(145, 155, 185)
 sub.BackgroundTransparency = 1
-sub.Size = UDim2.new(0, 220, 0, 16)
-sub.Position = UDim2.new(0, 30, 0, 38)
+sub.Size = UDim2.new(0, 220, 0, 14)
+sub.Position = UDim2.new(0, 30, 0, 37)
 sub.TextXAlignment = Enum.TextXAlignment.Left
 sub.ZIndex = 12
 sub.Parent = header
@@ -141,7 +141,7 @@ closeBtn.TextColor3 = Color3.fromRGB(230, 240, 255)
 closeBtn.BackgroundColor3 = Color3.fromRGB(24, 32, 48)
 closeBtn.AutoButtonColor = false
 closeBtn.Size = UDim2.new(0, 26, 0, 26)
-closeBtn.Position = UDim2.new(1, -38, 0, 24)
+closeBtn.Position = UDim2.new(1, -38, 0, 22)
 closeBtn.BorderSizePixel = 0
 closeBtn.ZIndex = 13
 closeBtn.Parent = header
@@ -150,11 +150,10 @@ local closeCorner = Instance.new("UICorner")
 closeCorner.CornerRadius = UDim.new(1, 0)
 closeCorner.Parent = closeBtn
 
--- SCROLL interno, el card no se mueve
 local listFrame = Instance.new("ScrollingFrame")
 listFrame.Name = "List"
-listFrame.Size = UDim2.new(1, -16, 1, -(LIST_TOP + LIST_BOTTOM_PADDING))
-listFrame.Position = UDim2.new(0, 8, 0, LIST_TOP)
+listFrame.Size = UDim2.new(1, -14, 1, -(LIST_TOP + LIST_BOTTOM_PADDING))
+listFrame.Position = UDim2.new(0, 7, 0, LIST_TOP)
 listFrame.BackgroundTransparency = 1
 listFrame.BorderSizePixel = 0
 listFrame.ScrollBarThickness = 4
@@ -216,11 +215,11 @@ for i, mod in ipairs(MODULES) do
     local nameLabel = Instance.new("TextLabel")
     nameLabel.Text = mod.name
     nameLabel.Font = Enum.Font.GothamBold
-    nameLabel.TextSize = 15
+    nameLabel.TextSize = 14
     nameLabel.TextColor3 = moduleReady(mod) and Color3.fromRGB(235, 245, 255) or Color3.fromRGB(150, 150, 170)
     nameLabel.BackgroundTransparency = 1
     nameLabel.Size = UDim2.new(0.7, 0, 0, 18)
-    nameLabel.Position = UDim2.new(0, 16, 0, 8)
+    nameLabel.Position = UDim2.new(0, 14, 0, 7)
     nameLabel.TextXAlignment = Enum.TextXAlignment.Left
     nameLabel.ZIndex = 13
     nameLabel.Parent = row
@@ -228,11 +227,11 @@ for i, mod in ipairs(MODULES) do
     local descLabel = Instance.new("TextLabel")
     descLabel.Text = moduleReady(mod) and mod.desc or "En desarrollo"
     descLabel.Font = Enum.Font.Gotham
-    descLabel.TextSize = 11
+    descLabel.TextSize = 10
     descLabel.TextColor3 = Color3.fromRGB(130, 140, 170)
     descLabel.BackgroundTransparency = 1
     descLabel.Size = UDim2.new(0.7, 0, 0, 14)
-    descLabel.Position = UDim2.new(0, 16, 0, 32)
+    descLabel.Position = UDim2.new(0, 14, 0, 28)
     descLabel.TextXAlignment = Enum.TextXAlignment.Left
     descLabel.ZIndex = 13
     descLabel.Parent = row
@@ -241,8 +240,8 @@ for i, mod in ipairs(MODULES) do
     state.Font = Enum.Font.GothamBold
     state.TextSize = 11
     state.BackgroundTransparency = 0
-    state.Size = UDim2.new(0, 104, 0, 22)
-    state.Position = UDim2.new(1, -150, 0, 10)
+    state.Size = UDim2.new(0, 100, 0, 22)
+    state.Position = UDim2.new(1, -146, 0, 8)
     state.BorderSizePixel = 0
     state.ZIndex = 13
     state.Parent = row
@@ -268,7 +267,7 @@ for i, mod in ipairs(MODULES) do
     arrow.TextColor3 = moduleReady(mod) and Color3.fromRGB(0, 200, 255) or Color3.fromRGB(90, 100, 130)
     arrow.BackgroundTransparency = 1
     arrow.Size = UDim2.new(0, 20, 1, 0)
-    arrow.Position = UDim2.new(1, -32, 0, 0)
+    arrow.Position = UDim2.new(1, -30, 0, 0)
     arrow.TextXAlignment = Enum.TextXAlignment.Center
     arrow.TextYAlignment = Enum.TextYAlignment.Center
     arrow.ZIndex = 13
