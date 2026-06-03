@@ -1,74 +1,176 @@
 -- ============================================================
---   Young0x Hub — Loader v3.0
+--   Young0x Hub — Loader v4.0 (Definitivo)
 --   github.com/Young0xYT/Hub
+--
+--   ✅ Lista de módulos planeados preparada para expansión
+--   ✅ Verificación de existencia usando HttpGet estándar
+--   ✅ Módulos no disponibles se muestran visualmente deshabilitados
+--   ✅ Compatible con FG90 y whitelist actual
+--   ✅ Sin GitHub API, sin RequestAsync, sin sistemas complejos
 -- ============================================================
 
-local RAW = "https://raw.githubusercontent.com/Young0xYT/Hub/main/modules/"
+local RAW_URL = "https://raw.githubusercontent.com/Young0xYT/Hub/main/modules/"
+local WHITELIST_URL = "https://raw.githubusercontent.com/Young0xYT/Hub/main/whitelist.lua"
 
 -- ─────────────────────────────────────────
---  ╔══════════════════════════════════════╗
---  ║         ZONA EDITABLE                ║
---  ╚══════════════════════════════════════╝
---
---  Para agregar un módulo:
---  1. Subi el .lua a /modules/ en GitHub
---  2. Copia un bloque de abajo y pegalo
---  3. Cambiá name, file y desc
---
+--  SERVICIOS
 -- ─────────────────────────────────────────
-local MODULES = {
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+-- ─────────────────────────────────────────
+--  VERIFICACIÓN DE WHITELIST (mejorado)
+-- ─────────────────────────────────────────
+local whitelistSuccess, whitelist = pcall(function()
+    return loadstring(game:HttpGet(WHITELIST_URL, true))()
+end)
+
+if not whitelistSuccess or not whitelist or not whitelist[player.UserId] then
+    -- Crear GUI de error
+    local errorGui = Instance.new("ScreenGui")
+    errorGui.Name = "HubErrorGui"
+    errorGui.ResetOnSpawn = false
+    errorGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    errorGui.IgnoreGuiInset = true
+    errorGui.Parent = playerGui
+
+    local errorFrame = Instance.new("Frame")
+    errorFrame.Size = UDim2.new(0, 300, 0, 150)
+    errorFrame.Position = UDim2.new(0.5, -150, 0.5, -75)
+    errorFrame.BackgroundColor3 = Color3.fromRGB(20, 19, 32)
+    errorFrame.BorderSizePixel = 0
+    errorFrame.ZIndex = 10
+    errorFrame.Parent = errorGui
+
+    local errorCorner = Instance.new("UICorner")
+    errorCorner.CornerRadius = UDim.new(0, 16)
+    errorCorner.Parent = errorFrame
+
+    local errorLabel = Instance.new("TextLabel")
+    errorLabel.Text = "❌ No estás autorizado\npara usar este Hub."
+    errorLabel.Font = Enum.Font.GothamBold
+    errorLabel.TextSize = 16
+    errorLabel.TextColor3 = Color3.fromRGB(235, 230, 255)
+    errorLabel.BackgroundTransparency = 1
+    errorLabel.Size = UDim2.new(1, -32, 1, -32)
+    errorLabel.Position = UDim2.new(0, 16, 0, 16)
+    errorLabel.TextXAlignment = Enum.TextXAlignment.Center
+    errorLabel.TextYAlignment = Enum.TextYAlignment.Center
+    errorLabel.ZIndex = 11
+    errorLabel.Parent = errorFrame
+
+    warn("[Young0x Hub] Usuario no autorizado (UserId: " .. tostring(player.UserId) .. ")")
+    return
+end
+
+-- ─────────────────────────────────────────
+--  LISTA DE MÓDULOS PLANEADOS (Nombres exactos)
+-- ─────────────────────────────────────────
+local PLANNED_MODULES = {
     {
         name = "Fast Glitch 90%",
         file = "fg90.lua",
         desc = "Simple Fast Glitch (Activa el Anti AFK)"
     },
-    -- {
-    --     name = "FG100",
-    --     file = "fg100.lua",
-    --     desc = "Fast Glitch 100%"
-    -- },
-    -- {
-    --     name = "Fast Farm",
-    --     file = "fastfarm.lua",
-    --     desc = "Automatización de farming"
-    -- },
-    -- {
-    --     name = "Auto Rebirth",
-    --     file = "autorebirth.lua",
-    --     desc = "Sistema de rebirth automático"
-    -- },
+    {
+        name = "Fast Glitch 100%",
+        file = "fg100.lua",
+        desc = "Fast Glitch 100%",
+        disabledReason = "Próximamente"
+    },
+    {
+        name = "Fast Farm",
+        file = "fastfarm.lua",
+        desc = "Automatización de farming",
+        disabledReason = "En desarrollo"
+    },
+    {
+        name = "Auto Rebirth",
+        file = "autorebirth.lua",
+        desc = "Sistema de rebirth automático",
+        disabledReason = "Próximamente"
+    },
+    {
+        name = "Auto Kill",
+        file = "autokill.lua",
+        desc = "Automatiza el combate",
+        disabledReason = "Próximamente"
+    },
+    {
+        name = "Anti Lag",
+        file = "antilag.lua",
+        desc = "Reduce el lag del juego",
+        disabledReason = "Próximamente"
+    },
+    {
+        name = "Anti AFK",
+        file = "antiafk.lua",
+        desc = "Evita desconexiones por AFK",
+        disabledReason = "Próximamente"
+    }
 }
+
 -- ─────────────────────────────────────────
---  FIN ZONA EDITABLE
+--  FUNCIÓN PARA VERIFICAR EXISTENCIA DE MÓDULO
 -- ─────────────────────────────────────────
+local function moduleExists(moduleFile)
+    local url = RAW_URL .. moduleFile
+    local success, result = pcall(function()
+        return game:HttpGet(url, true)
+    end)
+    return success and result ~= nil
+end
 
+-- ─────────────────────────────────────────
+--  GENERAR LISTA DE MÓDULOS DISPONIBLES
+-- ─────────────────────────────────────────
+local MODULES = {}
+for _, planned in ipairs(PLANNED_MODULES) do
+    local exists = moduleExists(planned.file)
 
--- ════════════════════════════════════════
---   NO TOCAR NADA DE ACÁ EN ADELANTE
--- ════════════════════════════════════════
+    if exists then
+        table.insert(MODULES, {
+            name = planned.name,
+            file = planned.file,
+            desc = planned.desc,
+            available = true
+        })
+    else
+        table.insert(MODULES, {
+            name = planned.name,
+            file = planned.file,
+            desc = planned.desc .. "\n\n[No disponible]",
+            available = false,
+            disabledReason = planned.disabledReason or "Archivo no encontrado en repositorio"
+        })
+    end
+end
 
-local Players      = game:GetService("Players")
-local TweenService = game:GetService("TweenService")
-local player       = Players.LocalPlayer
-local playerGui    = player:WaitForChild("PlayerGui")
-
--- Limpia instancias anteriores
+-- ─────────────────────────────────────────
+--  LIMPIA INSTANCIAS ANTERIORES
+-- ─────────────────────────────────────────
 if playerGui:FindFirstChild("HubGui") then
     playerGui.HubGui:Destroy()
+end
+
+if playerGui:FindFirstChild("HubErrorGui") then
+    playerGui.HubErrorGui:Destroy()
 end
 
 -- ─────────────────────────────────────────
 --  TAMAÑO — cómodo para móvil y PC
 -- ─────────────────────────────────────────
 local CARD_W    = 420
-local ROW_H     = 76   -- altura de cada botón de módulo
+local ROW_H     = 76
 local ROW_GAP   = 8
 local HEADER_H  = 72
 local PADDING_B = 16
 local CARD_H    = HEADER_H + PADDING_B + (#MODULES * (ROW_H + ROW_GAP))
 
 -- ─────────────────────────────────────────
---  GUI raíz — SIN fondo, solo la card
+--  GUI RAÍZ
 -- ─────────────────────────────────────────
 local gui = Instance.new("ScreenGui")
 gui.Name           = "HubGui"
@@ -84,7 +186,7 @@ local pendingFile = nil
 --  FUNCIÓN CERRAR (ejecuta pending al final)
 -- ─────────────────────────────────────────
 local closing = false
-local card     -- forward declaration
+local card    -- forward declaration
 
 local function closeHub()
     if closing then return end
@@ -97,13 +199,18 @@ local function closeHub()
     tweenOut:Play()
     tweenOut.Completed:Connect(function()
         gui:Destroy()
-        -- Recién acá ejecuta el módulo, hub ya cerrado
-        if pendingFile then
-            local ok, err = pcall(function()
-                loadstring(game:HttpGet(RAW .. pendingFile, true))()
-            end)
-            if not ok then
-                warn("[Young0x Hub] Error al ejecutar " .. pendingFile .. ": " .. tostring(err))
+        -- Ejecutar módulo solo si está disponible
+        if pendingFile and MODULES then
+            for _, mod in ipairs(MODULES) do
+                if mod.file == pendingFile and mod.available then
+                    local ok, err = pcall(function()
+                        loadstring(game:HttpGet(RAW_URL .. pendingFile, true))()
+                    end)
+                    if not ok then
+                        warn("[Young0x Hub] Error al ejecutar " .. pendingFile .. ": " .. tostring(err))
+                    end
+                    break
+                end
             end
         end
     end)
@@ -145,7 +252,6 @@ local headerCorner = Instance.new("UICorner")
 headerCorner.CornerRadius = UDim.new(0, 16)
 headerCorner.Parent = header
 
--- Parche para esquinas inferiores del header
 local headerPatch = Instance.new("Frame")
 headerPatch.Size             = UDim2.new(1, 0, 0, 16)
 headerPatch.Position         = UDim2.new(0, 0, 1, -16)
@@ -154,7 +260,6 @@ headerPatch.BorderSizePixel  = 0
 headerPatch.ZIndex           = 11
 headerPatch.Parent           = header
 
--- Barra de acento izquierda
 local accent = Instance.new("Frame")
 accent.Size             = UDim2.new(0, 4, 0, 32)
 accent.Position         = UDim2.new(0, 14, 0.5, -16)
@@ -167,7 +272,6 @@ local accentCorner = Instance.new("UICorner")
 accentCorner.CornerRadius = UDim.new(0, 4)
 accentCorner.Parent = accent
 
--- Nombre del hub
 local hubTitle = Instance.new("TextLabel")
 hubTitle.Text              = "Young0x Hub"
 hubTitle.Font              = Enum.Font.GothamBold
@@ -180,9 +284,8 @@ hubTitle.TextXAlignment    = Enum.TextXAlignment.Left
 hubTitle.ZIndex            = 12
 hubTitle.Parent            = header
 
--- Subtítulo fijo
 local hubSub = Instance.new("TextLabel")
-hubSub.Text              = "Seleccioná un Script!"
+hubSub.Text              = "Seleccioná un Script"
 hubSub.Font              = Enum.Font.Gotham
 hubSub.TextSize          = 12
 hubSub.TextColor3        = Color3.fromRGB(95, 90, 130)
@@ -193,7 +296,6 @@ hubSub.TextXAlignment    = Enum.TextXAlignment.Left
 hubSub.ZIndex            = 12
 hubSub.Parent            = header
 
--- Botón cerrar X
 local closeBtn = Instance.new("TextButton")
 closeBtn.Text             = "X"
 closeBtn.Font             = Enum.Font.GothamBold
@@ -225,7 +327,6 @@ closeBtn.MouseLeave:Connect(function()
     }):Play()
 end)
 
--- Separador bajo el header
 local sep = Instance.new("Frame")
 sep.Size             = UDim2.new(1, -28, 0, 1)
 sep.Position         = UDim2.new(0, 14, 0, HEADER_H)
@@ -254,58 +355,45 @@ layout.SortOrder = Enum.SortOrder.LayoutOrder
 layout.Parent    = listFrame
 
 -- ─────────────────────────────────────────
---  GENERAR BOTONES
+--  GENERAR BOTONES DE MÓDULOS
 -- ─────────────────────────────────────────
 for i, mod in ipairs(MODULES) do
-
     local row = Instance.new("TextButton")
     row.Name             = "Row_" .. i
     row.Size             = UDim2.new(1, 0, 0, ROW_H)
-    row.BackgroundColor3 = Color3.fromRGB(22, 21, 34)
     row.BorderSizePixel  = 0
     row.Text             = ""
     row.LayoutOrder      = i
     row.ZIndex           = 12
     row.Parent           = listFrame
 
+    if mod.available then
+        row.BackgroundColor3 = Color3.fromRGB(22, 21, 34)
+    else
+        row.BackgroundColor3 = Color3.fromRGB(15, 15, 25)
+        row.Active = false
+        row.Selectable = false
+    end
+
     local rowCorner = Instance.new("UICorner")
     rowCorner.CornerRadius = UDim.new(0, 10)
     rowCorner.Parent = row
 
     local rowStroke = Instance.new("UIStroke")
-    rowStroke.Color     = Color3.fromRGB(40, 38, 65)
+    if mod.available then
+        rowStroke.Color = Color3.fromRGB(40, 38, 65)
+    else
+        rowStroke.Color = Color3.fromRGB(30, 30, 40)
+    end
     rowStroke.Thickness = 1
-    rowStroke.Parent    = row
-
-    -- Número de ítem (izquierda)
-    local numLabel = Instance.new("TextLabel")
-    numLabel.Text              = string.format("%02d", i)
-    numLabel.Font              = Enum.Font.GothamBold
-    numLabel.TextSize          = 12
-    numLabel.TextColor3        = Color3.fromRGB(80, 70, 130)
-    numLabel.BackgroundTransparency = 1
-    numLabel.Size              = UDim2.new(0, 28, 1, 0)
-    numLabel.Position          = UDim2.new(0, 12, 0, 0)
-    numLabel.TextXAlignment    = Enum.TextXAlignment.Left
-    numLabel.TextYAlignment    = Enum.TextYAlignment.Center
-    numLabel.ZIndex            = 13
-    numLabel.Parent            = row
-
-    -- Separador vertical
-    local vSep = Instance.new("Frame")
-    vSep.Size             = UDim2.new(0, 1, 0, 34)
-    vSep.Position         = UDim2.new(0, 44, 0.5, -17)
-    vSep.BackgroundColor3 = Color3.fromRGB(45, 42, 72)
-    vSep.BorderSizePixel  = 0
-    vSep.ZIndex           = 13
-    vSep.Parent           = row
+    rowStroke.Parent = row
 
     -- Nombre del módulo
     local nameLabel = Instance.new("TextLabel")
     nameLabel.Text             = mod.name
     nameLabel.Font             = Enum.Font.GothamBold
     nameLabel.TextSize         = 15
-    nameLabel.TextColor3       = Color3.fromRGB(225, 220, 255)
+    nameLabel.TextColor3       = mod.available and Color3.fromRGB(225, 220, 255) or Color3.fromRGB(150, 150, 170)
     nameLabel.BackgroundTransparency = 1
     nameLabel.Size             = UDim2.new(1, -120, 0, 22)
     nameLabel.Position         = UDim2.new(0, 54, 0, 14)
@@ -313,25 +401,26 @@ for i, mod in ipairs(MODULES) do
     nameLabel.ZIndex           = 13
     nameLabel.Parent           = row
 
-    -- Descripción (separada con margen generoso)
+    -- Descripción
     local descLabel = Instance.new("TextLabel")
     descLabel.Text             = mod.desc
     descLabel.Font             = Enum.Font.Gotham
     descLabel.TextSize         = 12
-    descLabel.TextColor3       = Color3.fromRGB(85, 80, 125)
+    descLabel.TextColor3       = mod.available and Color3.fromRGB(85, 80, 125) or Color3.fromRGB(100, 100, 120)
     descLabel.BackgroundTransparency = 1
-    descLabel.Size             = UDim2.new(1, -120, 0, 16)
-    descLabel.Position         = UDim2.new(0, 54, 0, 42)  -- 14 gap desde nombre
+    descLabel.Size             = UDim2.new(1, -120, 0, 32)
+    descLabel.Position         = UDim2.new(0, 54, 0, 42)
     descLabel.TextXAlignment   = Enum.TextXAlignment.Left
+    descLabel.TextWrapped      = true
     descLabel.ZIndex           = 13
     descLabel.Parent           = row
 
-    -- Flecha derecha (>)
+    -- Flecha derecha
     local arrow = Instance.new("TextLabel")
-    arrow.Text             = "›"
+    arrow.Text             = mod.available and "›" or "✗"
     arrow.Font             = Enum.Font.GothamBold
     arrow.TextSize         = 22
-    arrow.TextColor3       = Color3.fromRGB(70, 65, 110)
+    arrow.TextColor3       = mod.available and Color3.fromRGB(70, 65, 110) or Color3.fromRGB(120, 120, 140)
     arrow.BackgroundTransparency = 1
     arrow.Size             = UDim2.new(0, 24, 1, 0)
     arrow.Position         = UDim2.new(1, -34, 0, 0)
@@ -340,51 +429,54 @@ for i, mod in ipairs(MODULES) do
     arrow.ZIndex           = 13
     arrow.Parent           = row
 
-    -- ── Hover ──
-    row.MouseEnter:Connect(function()
-        TweenService:Create(row, TweenInfo.new(0.14), {
-            BackgroundColor3 = Color3.fromRGB(30, 28, 48)
-        }):Play()
-        TweenService:Create(rowStroke, TweenInfo.new(0.14), {
-            Color = Color3.fromRGB(100, 85, 200)
-        }):Play()
-        TweenService:Create(arrow, TweenInfo.new(0.14), {
-            TextColor3 = Color3.fromRGB(140, 120, 240)
-        }):Play()
-    end)
-    row.MouseLeave:Connect(function()
-        TweenService:Create(row, TweenInfo.new(0.14), {
-            BackgroundColor3 = Color3.fromRGB(22, 21, 34)
-        }):Play()
-        TweenService:Create(rowStroke, TweenInfo.new(0.14), {
-            Color = Color3.fromRGB(40, 38, 65)
-        }):Play()
-        TweenService:Create(arrow, TweenInfo.new(0.14), {
-            TextColor3 = Color3.fromRGB(70, 65, 110)
-        }):Play()
-    end)
+    -- Efecto hover (solo para módulos disponibles)
+    if mod.available then
+        row.MouseEnter:Connect(function()
+            TweenService:Create(row, TweenInfo.new(0.14), {
+                BackgroundColor3 = Color3.fromRGB(30, 28, 48)
+            }):Play()
+            TweenService:Create(rowStroke, TweenInfo.new(0.14), {
+                Color = Color3.fromRGB(100, 85, 200)
+            }):Play()
+            TweenService:Create(arrow, TweenInfo.new(0.14), {
+                TextColor3 = Color3.fromRGB(140, 120, 240)
+            }):Play()
+        end)
 
-    -- ── Click: guardar pending y cerrar ──
-    local clicked = false
-    row.MouseButton1Click:Connect(function()
-        if clicked or closing then return end
-        clicked = true
+        row.MouseLeave:Connect(function()
+            TweenService:Create(row, TweenInfo.new(0.14), {
+                BackgroundColor3 = Color3.fromRGB(22, 21, 34)
+            }):Play()
+            TweenService:Create(rowStroke, TweenInfo.new(0.14), {
+                Color = Color3.fromRGB(40, 38, 65)
+            }):Play()
+            TweenService:Create(arrow, TweenInfo.new(0.14), {
+                TextColor3 = Color3.fromRGB(70, 65, 110)
+            }):Play()
+        end)
 
-        -- Feedback visual
-        TweenService:Create(row, TweenInfo.new(0.1), {
-            BackgroundColor3 = Color3.fromRGB(40, 35, 70)
-        }):Play()
-        TweenService:Create(rowStroke, TweenInfo.new(0.1), {
-            Color = Color3.fromRGB(130, 110, 255)
-        }):Play()
+        -- Click handler
+        local clicked = false
+        row.MouseButton1Click:Connect(function()
+            if clicked or closing then return end
+            clicked = true
 
-        -- Registra qué ejecutar DESPUÉS del cierre
-        pendingFile = mod.file
+            -- Feedback visual
+            TweenService:Create(row, TweenInfo.new(0.1), {
+                BackgroundColor3 = Color3.fromRGB(40, 35, 70)
+            }):Play()
+            TweenService:Create(rowStroke, TweenInfo.new(0.1), {
+                Color = Color3.fromRGB(130, 110, 255)
+            }):Play()
 
-        -- Cierra el hub; el módulo se ejecuta al final de closeHub
-        task.wait(0.12)
-        closeHub()
-    end)
+            -- Registra qué ejecutar DESPUÉS del cierre
+            pendingFile = mod.file
+
+            -- Cierra el hub; el módulo se ejecuta al final de closeHub
+            task.wait(0.12)
+            closeHub()
+        end)
+    end
 end
 
 -- ─────────────────────────────────────────
