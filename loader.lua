@@ -1,4 +1,4 @@
--- Young0x Hub — Loader (UI horizontal compacta con scroll interno)
+-- Young0x Hub — Loader (UI compacta para PC + Cel)
 
 local RAW = "https://raw.githubusercontent.com/Young0xYT/Hub/main/modules/"
 
@@ -22,13 +22,14 @@ if old then
     old:Destroy()
 end
 
-local CARD_W = 760
-local CARD_H = 470
-local HEADER_H = 76
-local LIST_TOP = HEADER_H + 8
-local LIST_BOTTOM_PADDING = 10
-local ROW_H = 74
-local ROW_GAP = 8
+-- Más chico para que entre en cel y se vea completo
+local CARD_W = 620          -- antes 760
+local CARD_H = 380          -- antes 470
+local HEADER_H = 72
+local LIST_TOP = HEADER_H + 6
+local LIST_BOTTOM_PADDING = 8
+local ROW_H = 64
+local ROW_GAP = 6
 
 local gui = Instance.new("ScreenGui")
 gui.Name = "HubGui"
@@ -58,7 +59,7 @@ card.Name = "Card"
 card.Size = UDim2.new(0, CARD_W, 0, CARD_H)
 card.Position = UDim2.new(0.5, -CARD_W / 2, 0.5, -CARD_H / 2)
 card.BackgroundColor3 = Color3.fromRGB(7, 11, 19)
-card.BackgroundTransparency = 0.08
+card.BackgroundTransparency = 0.1
 card.BorderSizePixel = 0
 card.Active = true
 card.Draggable = false
@@ -71,7 +72,7 @@ cardCorner.Parent = card
 
 local cardStroke = Instance.new("UIStroke")
 cardStroke.Color = Color3.fromRGB(0, 180, 255)
-cardStroke.Thickness = 1.2
+cardStroke.Thickness = 1
 cardStroke.Transparency = 0.05
 cardStroke.Parent = card
 
@@ -98,7 +99,7 @@ headerPatch.Parent = header
 
 local accent = Instance.new("Frame")
 accent.Size = UDim2.new(0, 5, 0, 44)
-accent.Position = UDim2.new(0, 16, 0, 16)
+accent.Position = UDim2.new(0, 14, 0, 16)
 accent.BackgroundColor3 = Color3.fromRGB(0, 190, 255)
 accent.BorderSizePixel = 0
 accent.ZIndex = 12
@@ -114,8 +115,8 @@ title.Font = Enum.Font.GothamBold
 title.TextSize = 18
 title.TextColor3 = Color3.fromRGB(240, 244, 255)
 title.BackgroundTransparency = 1
-title.Size = UDim2.new(0, 250, 0, 22)
-title.Position = UDim2.new(0, 34, 0, 14)
+title.Size = UDim2.new(0, 220, 0, 22)
+title.Position = UDim2.new(0, 30, 0, 14)
 title.TextXAlignment = Enum.TextXAlignment.Left
 title.ZIndex = 12
 title.Parent = header
@@ -126,8 +127,8 @@ sub.Font = Enum.Font.Gotham
 sub.TextSize = 12
 sub.TextColor3 = Color3.fromRGB(145, 155, 185)
 sub.BackgroundTransparency = 1
-sub.Size = UDim2.new(0, 250, 0, 16)
-sub.Position = UDim2.new(0, 34, 0, 38)
+sub.Size = UDim2.new(0, 220, 0, 16)
+sub.Position = UDim2.new(0, 30, 0, 38)
 sub.TextXAlignment = Enum.TextXAlignment.Left
 sub.ZIndex = 12
 sub.Parent = header
@@ -139,8 +140,8 @@ closeBtn.TextSize = 16
 closeBtn.TextColor3 = Color3.fromRGB(230, 240, 255)
 closeBtn.BackgroundColor3 = Color3.fromRGB(24, 32, 48)
 closeBtn.AutoButtonColor = false
-closeBtn.Size = UDim2.new(0, 28, 0, 28)
-closeBtn.Position = UDim2.new(1, -40, 0, 24)
+closeBtn.Size = UDim2.new(0, 26, 0, 26)
+closeBtn.Position = UDim2.new(1, -38, 0, 24)
 closeBtn.BorderSizePixel = 0
 closeBtn.ZIndex = 13
 closeBtn.Parent = header
@@ -149,10 +150,11 @@ local closeCorner = Instance.new("UICorner")
 closeCorner.CornerRadius = UDim.new(1, 0)
 closeCorner.Parent = closeBtn
 
+-- SCROLL interno, el card no se mueve
 local listFrame = Instance.new("ScrollingFrame")
 listFrame.Name = "List"
-listFrame.Size = UDim2.new(1, -18, 1, -(LIST_TOP + LIST_BOTTOM_PADDING))
-listFrame.Position = UDim2.new(0, 9, 0, LIST_TOP)
+listFrame.Size = UDim2.new(1, -16, 1, -(LIST_TOP + LIST_BOTTOM_PADDING))
+listFrame.Position = UDim2.new(0, 8, 0, LIST_TOP)
 listFrame.BackgroundTransparency = 1
 listFrame.BorderSizePixel = 0
 listFrame.ScrollBarThickness = 4
@@ -160,8 +162,8 @@ listFrame.ScrollBarImageColor3 = Color3.fromRGB(0, 190, 255)
 listFrame.VerticalScrollBarInset = Enum.ScrollBarInset.Always
 listFrame.HorizontalScrollBarInset = Enum.ScrollBarInset.None
 listFrame.ScrollingDirection = Enum.ScrollingDirection.Y
-listFrame.CanvasSize = UDim2.new(0, 0, 0, (#MODULES * ROW_H) + ((#MODULES - 1) * ROW_GAP))
 listFrame.ZIndex = 11
+listFrame.CanvasSize = UDim2.new(0, 0, 0, (#MODULES * ROW_H) + ((#MODULES - 1) * ROW_GAP))
 listFrame.Parent = card
 
 local listLayout = Instance.new("UIListLayout")
@@ -175,7 +177,7 @@ local function closeHub()
     closing = true
     local tweenOut = TweenService:Create(
         card,
-        TweenInfo.new(0.28, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
+        TweenInfo.new(0.26, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
         { Position = UDim2.new(0.5, -CARD_W / 2, 1.1, 0) }
     )
     tweenOut:Play()
@@ -217,8 +219,8 @@ for i, mod in ipairs(MODULES) do
     nameLabel.TextSize = 15
     nameLabel.TextColor3 = moduleReady(mod) and Color3.fromRGB(235, 245, 255) or Color3.fromRGB(150, 150, 170)
     nameLabel.BackgroundTransparency = 1
-    nameLabel.Size = UDim2.new(0.7, 0, 0, 20)
-    nameLabel.Position = UDim2.new(0, 18, 0, 8)
+    nameLabel.Size = UDim2.new(0.7, 0, 0, 18)
+    nameLabel.Position = UDim2.new(0, 16, 0, 8)
     nameLabel.TextXAlignment = Enum.TextXAlignment.Left
     nameLabel.ZIndex = 13
     nameLabel.Parent = row
@@ -226,11 +228,11 @@ for i, mod in ipairs(MODULES) do
     local descLabel = Instance.new("TextLabel")
     descLabel.Text = moduleReady(mod) and mod.desc or "En desarrollo"
     descLabel.Font = Enum.Font.Gotham
-    descLabel.TextSize = 12
+    descLabel.TextSize = 11
     descLabel.TextColor3 = Color3.fromRGB(130, 140, 170)
     descLabel.BackgroundTransparency = 1
-    descLabel.Size = UDim2.new(0.7, 0, 0, 16)
-    descLabel.Position = UDim2.new(0, 18, 0, 36)
+    descLabel.Size = UDim2.new(0.7, 0, 0, 14)
+    descLabel.Position = UDim2.new(0, 16, 0, 32)
     descLabel.TextXAlignment = Enum.TextXAlignment.Left
     descLabel.ZIndex = 13
     descLabel.Parent = row
@@ -239,8 +241,8 @@ for i, mod in ipairs(MODULES) do
     state.Font = Enum.Font.GothamBold
     state.TextSize = 11
     state.BackgroundTransparency = 0
-    state.Size = UDim2.new(0, 108, 0, 22)
-    state.Position = UDim2.new(1, -154, 0, 12)
+    state.Size = UDim2.new(0, 104, 0, 22)
+    state.Position = UDim2.new(1, -150, 0, 10)
     state.BorderSizePixel = 0
     state.ZIndex = 13
     state.Parent = row
@@ -262,11 +264,11 @@ for i, mod in ipairs(MODULES) do
     local arrow = Instance.new("TextLabel")
     arrow.Text = moduleReady(mod) and "›" or "•"
     arrow.Font = Enum.Font.GothamBold
-    arrow.TextSize = 20
+    arrow.TextSize = 18
     arrow.TextColor3 = moduleReady(mod) and Color3.fromRGB(0, 200, 255) or Color3.fromRGB(90, 100, 130)
     arrow.BackgroundTransparency = 1
-    arrow.Size = UDim2.new(0, 24, 1, 0)
-    arrow.Position = UDim2.new(1, -36, 0, 0)
+    arrow.Size = UDim2.new(0, 20, 1, 0)
+    arrow.Position = UDim2.new(1, -32, 0, 0)
     arrow.TextXAlignment = Enum.TextXAlignment.Center
     arrow.TextYAlignment = Enum.TextYAlignment.Center
     arrow.ZIndex = 13
@@ -311,6 +313,6 @@ end
 
 TweenService:Create(
     card,
-    TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+    TweenInfo.new(0.32, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
     { Position = UDim2.new(0.5, -CARD_W / 2, 0.5, -CARD_H / 2) }
 ):Play()
