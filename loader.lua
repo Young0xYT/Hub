@@ -1,7 +1,10 @@
--- Young0x Hub — Loader (compacto, mismo comportamiento)
+-- Young0x Hub — Loader definitivo (compacto PC + Cel)
 
 local RAW = "https://raw.githubusercontent.com/Young0xYT/Hub/main/modules/"
 
+-- CONFIGURÁ TUS SCRIPTS ACÁ:
+-- status = "ready"  -> Activo, se puede ejecutar
+-- status = "soon"   -> En desarrollo, bloqueado
 local MODULES = {
     { name = "Fast Glitch 90%",  file = "fg90.lua",        desc = "Simple Fast Glitch", status = "ready" },
     { name = "Fast Glitch 100%", file = "fg100.lua",       desc = "En desarrollo",      status = "soon"  },
@@ -14,6 +17,7 @@ local MODULES = {
 
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
+
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
@@ -22,14 +26,14 @@ if old then
     old:Destroy()
 end
 
--- Apenas más chico en todas las esquinas
-local CARD_W = 580
-local CARD_H = 352
-local HEADER_H = 70
-local LIST_TOP = HEADER_H + 6
-local LIST_BOTTOM_PADDING = 8
-local ROW_H = 60
-local ROW_GAP = 5
+-- Un poco más recortado verticalmente para que entre perfecto en cel
+local CARD_W = 560      -- ancho
+local CARD_H = 320      -- alto (más bajo que antes)
+local HEADER_H = 68
+local LIST_TOP = HEADER_H + 4
+local LIST_BOTTOM_PADDING = 6
+local ROW_H = 58
+local ROW_GAP = 4
 
 local gui = Instance.new("ScreenGui")
 gui.Name = "HubGui"
@@ -54,12 +58,13 @@ local function runModule(file)
     end
 end
 
+-- CARD PRINCIPAL
 local card = Instance.new("Frame")
 card.Name = "Card"
 card.Size = UDim2.new(0, CARD_W, 0, CARD_H)
 card.Position = UDim2.new(0.5, -CARD_W / 2, 0.5, -CARD_H / 2)
 card.BackgroundColor3 = Color3.fromRGB(7, 11, 19)
-card.BackgroundTransparency = 0.1
+card.BackgroundTransparency = 0.12
 card.BorderSizePixel = 0
 card.Active = true
 card.Draggable = false
@@ -76,6 +81,7 @@ cardStroke.Thickness = 1
 cardStroke.Transparency = 0.05
 cardStroke.Parent = card
 
+-- HEADER
 local header = Instance.new("Frame")
 header.Size = UDim2.new(1, 0, 0, HEADER_H)
 header.BackgroundColor3 = Color3.fromRGB(9, 14, 24)
@@ -98,7 +104,7 @@ headerPatch.ZIndex = 11
 headerPatch.Parent = header
 
 local accent = Instance.new("Frame")
-accent.Size = UDim2.new(0, 5, 0, 40)
+accent.Size = UDim2.new(0, 5, 0, 34)
 accent.Position = UDim2.new(0, 14, 0, 16)
 accent.BackgroundColor3 = Color3.fromRGB(0, 190, 255)
 accent.BorderSizePixel = 0
@@ -116,7 +122,7 @@ title.TextSize = 17
 title.TextColor3 = Color3.fromRGB(240, 244, 255)
 title.BackgroundTransparency = 1
 title.Size = UDim2.new(0, 220, 0, 20)
-title.Position = UDim2.new(0, 30, 0, 14)
+title.Position = UDim2.new(0, 30, 0, 13)
 title.TextXAlignment = Enum.TextXAlignment.Left
 title.ZIndex = 12
 title.Parent = header
@@ -128,7 +134,7 @@ sub.TextSize = 11
 sub.TextColor3 = Color3.fromRGB(145, 155, 185)
 sub.BackgroundTransparency = 1
 sub.Size = UDim2.new(0, 220, 0, 14)
-sub.Position = UDim2.new(0, 30, 0, 37)
+sub.Position = UDim2.new(0, 30, 0, 35)
 sub.TextXAlignment = Enum.TextXAlignment.Left
 sub.ZIndex = 12
 sub.Parent = header
@@ -141,7 +147,7 @@ closeBtn.TextColor3 = Color3.fromRGB(230, 240, 255)
 closeBtn.BackgroundColor3 = Color3.fromRGB(24, 32, 48)
 closeBtn.AutoButtonColor = false
 closeBtn.Size = UDim2.new(0, 26, 0, 26)
-closeBtn.Position = UDim2.new(1, -38, 0, 22)
+closeBtn.Position = UDim2.new(1, -38, 0, 20)
 closeBtn.BorderSizePixel = 0
 closeBtn.ZIndex = 13
 closeBtn.Parent = header
@@ -150,6 +156,7 @@ local closeCorner = Instance.new("UICorner")
 closeCorner.CornerRadius = UDim.new(1, 0)
 closeCorner.Parent = closeBtn
 
+-- LISTA SCROLLEABLE
 local listFrame = Instance.new("ScrollingFrame")
 listFrame.Name = "List"
 listFrame.Size = UDim2.new(1, -14, 1, -(LIST_TOP + LIST_BOTTOM_PADDING))
@@ -171,6 +178,7 @@ listLayout.SortOrder = Enum.SortOrder.LayoutOrder
 listLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 listLayout.Parent = listFrame
 
+-- CERRAR HUB + EJECUTAR SCRIPT SELECCIONADO
 local function closeHub()
     if closing then return end
     closing = true
@@ -190,6 +198,7 @@ end
 
 closeBtn.MouseButton1Click:Connect(closeHub)
 
+-- FILAS DE SCRIPTS
 for i, mod in ipairs(MODULES) do
     local row = Instance.new("TextButton")
     row.Name = "Row_" .. i
@@ -219,7 +228,7 @@ for i, mod in ipairs(MODULES) do
     nameLabel.TextColor3 = moduleReady(mod) and Color3.fromRGB(235, 245, 255) or Color3.fromRGB(150, 150, 170)
     nameLabel.BackgroundTransparency = 1
     nameLabel.Size = UDim2.new(0.7, 0, 0, 18)
-    nameLabel.Position = UDim2.new(0, 14, 0, 7)
+    nameLabel.Position = UDim2.new(0, 14, 0, 6)
     nameLabel.TextXAlignment = Enum.TextXAlignment.Left
     nameLabel.ZIndex = 13
     nameLabel.Parent = row
@@ -231,7 +240,7 @@ for i, mod in ipairs(MODULES) do
     descLabel.TextColor3 = Color3.fromRGB(130, 140, 170)
     descLabel.BackgroundTransparency = 1
     descLabel.Size = UDim2.new(0.7, 0, 0, 14)
-    descLabel.Position = UDim2.new(0, 14, 0, 28)
+    descLabel.Position = UDim2.new(0, 14, 0, 26)
     descLabel.TextXAlignment = Enum.TextXAlignment.Left
     descLabel.ZIndex = 13
     descLabel.Parent = row
@@ -240,8 +249,8 @@ for i, mod in ipairs(MODULES) do
     state.Font = Enum.Font.GothamBold
     state.TextSize = 11
     state.BackgroundTransparency = 0
-    state.Size = UDim2.new(0, 100, 0, 22)
-    state.Position = UDim2.new(1, -146, 0, 8)
+    state.Size = UDim2.new(0, 96, 0, 22)
+    state.Position = UDim2.new(1, -142, 0, 7)
     state.BorderSizePixel = 0
     state.ZIndex = 13
     state.Parent = row
@@ -266,7 +275,7 @@ for i, mod in ipairs(MODULES) do
     arrow.TextSize = 18
     arrow.TextColor3 = moduleReady(mod) and Color3.fromRGB(0, 200, 255) or Color3.fromRGB(90, 100, 130)
     arrow.BackgroundTransparency = 1
-    arrow.Size = UDim2.new(0, 20, 1, 0)
+    arrow.Size = UDim2.new(0, 18, 1, 0)
     arrow.Position = UDim2.new(1, -30, 0, 0)
     arrow.TextXAlignment = Enum.TextXAlignment.Center
     arrow.TextYAlignment = Enum.TextYAlignment.Center
@@ -310,6 +319,7 @@ for i, mod in ipairs(MODULES) do
     end
 end
 
+-- ANIMACIÓN DE ENTRADA
 TweenService:Create(
     card,
     TweenInfo.new(0.32, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
