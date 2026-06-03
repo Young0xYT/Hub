@@ -3,9 +3,9 @@
 --   github.com/Young0xYT/Hub
 --
 --   ✅ Lista de módulos planeados preparada para expansión
---   ✅ Verificación de existencia usando HttpGet estándar
+--   ✅ Verificación de existencia usando game:HttpGet (estándar de Roblox)
 --   ✅ Módulos no disponibles se muestran visualmente deshabilitados
---   ✅ Compatible con FG90 y whitelist actual
+--   ✅ Compatible con FG90 y whitelist mejorada
 --   ✅ Sin GitHub API, sin RequestAsync, sin sistemas complejos
 -- ============================================================
 
@@ -28,39 +28,6 @@ local whitelistSuccess, whitelist = pcall(function()
 end)
 
 if not whitelistSuccess or not whitelist or not whitelist[player.UserId] then
-    -- Crear GUI de error
-    local errorGui = Instance.new("ScreenGui")
-    errorGui.Name = "HubErrorGui"
-    errorGui.ResetOnSpawn = false
-    errorGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-    errorGui.IgnoreGuiInset = true
-    errorGui.Parent = playerGui
-
-    local errorFrame = Instance.new("Frame")
-    errorFrame.Size = UDim2.new(0, 300, 0, 150)
-    errorFrame.Position = UDim2.new(0.5, -150, 0.5, -75)
-    errorFrame.BackgroundColor3 = Color3.fromRGB(20, 19, 32)
-    errorFrame.BorderSizePixel = 0
-    errorFrame.ZIndex = 10
-    errorFrame.Parent = errorGui
-
-    local errorCorner = Instance.new("UICorner")
-    errorCorner.CornerRadius = UDim.new(0, 16)
-    errorCorner.Parent = errorFrame
-
-    local errorLabel = Instance.new("TextLabel")
-    errorLabel.Text = "❌ No estás autorizado\npara usar este Hub."
-    errorLabel.Font = Enum.Font.GothamBold
-    errorLabel.TextSize = 16
-    errorLabel.TextColor3 = Color3.fromRGB(235, 230, 255)
-    errorLabel.BackgroundTransparency = 1
-    errorLabel.Size = UDim2.new(1, -32, 1, -32)
-    errorLabel.Position = UDim2.new(0, 16, 0, 16)
-    errorLabel.TextXAlignment = Enum.TextXAlignment.Center
-    errorLabel.TextYAlignment = Enum.TextYAlignment.Center
-    errorLabel.ZIndex = 11
-    errorLabel.Parent = errorFrame
-
     warn("[Young0x Hub] Usuario no autorizado (UserId: " .. tostring(player.UserId) .. ")")
     return
 end
@@ -155,10 +122,6 @@ if playerGui:FindFirstChild("HubGui") then
     playerGui.HubGui:Destroy()
 end
 
-if playerGui:FindFirstChild("HubErrorGui") then
-    playerGui.HubErrorGui:Destroy()
-end
-
 -- ─────────────────────────────────────────
 --  TAMAÑO — cómodo para móvil y PC
 -- ─────────────────────────────────────────
@@ -170,7 +133,7 @@ local PADDING_B = 16
 local CARD_H    = HEADER_H + PADDING_B + (#MODULES * (ROW_H + ROW_GAP))
 
 -- ─────────────────────────────────────────
---  GUI RAÍZ
+--  GUI RAÍZ (MISMA ESTRUCTURA ORIGINAL)
 -- ─────────────────────────────────────────
 local gui = Instance.new("ScreenGui")
 gui.Name           = "HubGui"
@@ -183,7 +146,7 @@ gui.Parent         = playerGui
 local pendingFile = nil
 
 -- ─────────────────────────────────────────
---  FUNCIÓN CERRAR (ejecuta pending al final)
+--  FUNCIÓN CERRAR (MISMO COMPORTAMIENTO)
 -- ─────────────────────────────────────────
 local closing = false
 local card    -- forward declaration
@@ -217,7 +180,7 @@ local function closeHub()
 end
 
 -- ─────────────────────────────────────────
---  CARD PRINCIPAL
+--  CARD PRINCIPAL (MISMA ESTRUCTURA)
 -- ─────────────────────────────────────────
 card = Instance.new("Frame")
 card.Name             = "Card"
@@ -238,7 +201,7 @@ cardStroke.Thickness = 1.2
 cardStroke.Parent    = card
 
 -- ─────────────────────────────────────────
---  HEADER
+--  HEADER (MISMA ESTRUCTURA)
 -- ─────────────────────────────────────────
 local header = Instance.new("Frame")
 header.Size             = UDim2.new(1, 0, 0, HEADER_H)
@@ -336,7 +299,7 @@ sep.ZIndex           = 11
 sep.Parent           = card
 
 -- ─────────────────────────────────────────
---  LISTA DE MÓDULOS
+--  LISTA DE MÓDULOS (MISMA ESTRUCTURA)
 -- ─────────────────────────────────────────
 local listFrame = Instance.new("ScrollingFrame")
 listFrame.Size                   = UDim2.new(1, -16, 1, -(HEADER_H + 10 + PADDING_B))
@@ -355,7 +318,7 @@ layout.SortOrder = Enum.SortOrder.LayoutOrder
 layout.Parent    = listFrame
 
 -- ─────────────────────────────────────────
---  GENERAR BOTONES DE MÓDULOS
+--  GENERAR BOTONES DE MÓDULOS (MISMA LÓGICA)
 -- ─────────────────────────────────────────
 for i, mod in ipairs(MODULES) do
     local row = Instance.new("TextButton")
@@ -480,7 +443,7 @@ for i, mod in ipairs(MODULES) do
 end
 
 -- ─────────────────────────────────────────
---  ANIMACIÓN DE ENTRADA
+--  ANIMACIÓN DE ENTRADA (MISMA ESTRUCTURA)
 -- ─────────────────────────────────────────
 local targetPos = UDim2.new(0.5, -CARD_W / 2, 0.5, -CARD_H / 2)
 
